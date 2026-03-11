@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { socket } from '../socket';
+import { socket, getUserId } from '../socket';
 import { Monitor, Smartphone, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -11,7 +11,7 @@ export default function Home() {
 
     const handleCreateRoom = () => {
         socket.connect();
-        socket.emit('createRoom', (res) => {
+        socket.emit('createRoom', { userId: getUserId() }, (res) => {
             navigate(`/host/${res.roomCode}`);
         });
     };
@@ -21,7 +21,7 @@ export default function Home() {
         if (!joinCode || !playerName) return;
 
         socket.connect();
-        socket.emit('joinRoom', { roomCode: joinCode, playerName }, (res) => {
+        socket.emit('joinRoom', { roomCode: joinCode, playerName, userId: getUserId() }, (res) => {
             if (res.success) {
                 navigate(`/controller/${joinCode}`);
             } else {

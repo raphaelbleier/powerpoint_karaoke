@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { socket } from '../socket';
+import { socket, getUserId } from '../socket';
 import Slideshow from './Slideshow';
 import { Users, Play, Settings, Star, Trophy, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,8 +10,7 @@ export default function HostView() {
     const navigate = useNavigate();
     const [gameState, setGameState] = useState(null);
     const [categories, setCategories] = useState([]);
-    const [selectedCategory, setSelectedCategory] = useState(null);
-    const [selectedPresenter, setSelectedPresenter] = useState('');
+    const [includedCategoryIds, setIncludedCategoryIds] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -21,6 +20,8 @@ export default function HostView() {
             .then(res => res.json())
             .then(data => {
                 setCategories(data);
+                // By default, include all categories that have presentations
+                setIncludedCategoryIds(data.map(c => c.id));
                 setLoading(false);
             })
             .catch(err => {
@@ -36,10 +37,10 @@ export default function HostView() {
 
         // Attempt to fetch state in case we missed the initial emit or refreshed
         if (socket.connected) {
-            socket.emit('requestGameState', { roomCode });
+            socket.emit('requestGameState', { roomCode, userId: getUserId() });
         } else {
             socket.connect();
-            setTimeout(() => socket.emit('requestGameState', { roomCode }), 500);
+            setTimeout(() => socket.emit('requestGameState', { roomCode, userId: getUserId() }), 500);
         }
 
         return () => {
@@ -51,23 +52,42 @@ export default function HostView() {
     const handlePrevSlide = () => socket.emit('prevSlide', { roomCode });
 
     const handleStartRandomPresentation = () => {
-        if (!selectedCategory || !selectedCategory.presentations.length || !selectedPresenter) return;
+        if (!gameState) return;
+        const { players } = gameState;
 
-        const count = selectedCategory.presentations.length;
-        const randomIndex = Math.floor(Math.random() * count);
-        const presentation = selectedCategory.presentations[randomIndex];
+        const validCategories = categories.filter(c => includedCategoryIds.includes(c.id) && c.presentations.length > 0);
+        if (validCategories.length === 0) {
+            alert("No categories with presentations selected!");
+            return;
+        }
 
-        socket.emit('startPresentation', { roomCode, presentation, presenterId: selectedPresenter });
+        const availablePlayers = players.filter(p => !p.hasPresentedThisRound);
+        if (availablePlayers.length === 0) {
+            alert("All players have presented this round!");
+            return;
+        }
+
+        const randomCat = validCategories[Math.floor(Math.random() * validCategories.length)];
+        const randomPres = randomCat.presentations[Math.floor(Math.random() * randomCat.presentations.length)];
+        const randomPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
+
+        socket.emit('startPresentation', { roomCode, userId: getUserId(), presentation: randomPres, presenterId: randomPlayer.id });
+    };
+
+    const toggleCategory = (id) => {
+        setIncludedCategoryIds(prev =>
+            prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+        );
     };
 
     const handleEndPresentation = () => {
         // Move to voting phase instead of ending immediately
-        socket.emit('startVoting', { roomCode });
+        socket.emit('startVoting', { roomCode, userId: getUserId() });
     };
 
     const handleUpdateSettings = (e) => {
         const maxRounds = parseInt(e.target.value) || 1;
-        socket.emit('updateSettings', { roomCode, settings: { maxRounds } });
+        socket.emit('updateSettings', { roomCode, userId: getUserId(), settings: { maxRounds } });
     };
 
     const handleRefreshCategories = async () => {
@@ -78,11 +98,26 @@ export default function HostView() {
             const data = await res.json();
             if (data.success) {
                 setCategories(data.categories);
+
+                // Add any new categories to the included list
+                const currentIncludedSet = new Set(includedCategoryIds);
+                const newIdsToInclude = data.categories
+                    .filter(c => !currentIncludedSet.has(c.id))
+                    .map(c => c.id);
+
+                if (newIdsToInclude.length > 0) {
+                    setIncludedCategoryIds(prev => [...prev, ...newIdsToInclude]);
+                }
             }
         } catch (err) {
             console.error('Failed to refresh:', err);
         }
         setLoading(false);
+    };
+
+    const handleLeaveRoom = () => {
+        socket.emit('leaveRoom', { roomCode, userId: getUserId(), isHost: true });
+        navigate('/');
     };
 
     if (!gameState) return <div className="host-container flex-center"><h3>Waiting for game state...</h3></div>;
@@ -117,7 +152,7 @@ export default function HostView() {
                         {votesCount} / {totalVoters} Votes Submitted
                     </div>
 
-                    <button onClick={() => socket.emit('finishVoting', { roomCode })} className="btn-primary mt-4">
+                    <button onClick={() => socket.emit('finishVoting', { roomCode, userId: getUserId() })} className="btn-primary mt-4">
                         Reveal Score & Continue
                     </button>
                 </motion.div>
@@ -143,7 +178,7 @@ export default function HostView() {
                                 </li>
                             ))}
                         </ul>
-                        <button onClick={() => navigate('/')} className="btn-secondary mt-8">Return Home</button>
+                        <button onClick={handleLeaveRoom} className="btn-secondary mt-8">Return Home</button>
                     </div>
                 </div>
             </div>
@@ -201,8 +236,8 @@ export default function HostView() {
                             {categories.map(cat => (
                                 <button
                                     key={cat.id}
-                                    className={`category-btn ${selectedCategory?.id === cat.id ? 'active' : ''}`}
-                                    onClick={() => setSelectedCategory(cat)}
+                                    className={`category-btn ${includedCategoryIds.includes(cat.id) ? 'active' : ''}`}
+                                    onClick={() => toggleCategory(cat.id)}
                                 >
                                     {cat.name} ({cat.presentations.length})
                                 </button>
@@ -210,38 +245,18 @@ export default function HostView() {
                         </div>
                     )}
 
-                    <AnimatePresence>
-                        {selectedCategory && (
-                            <motion.div
-                                className="action-panel mt-6"
-                                initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                            >
-                                <p>Ready to present a random topic from <strong>{selectedCategory.name}</strong>?</p>
-
-                                <div className="flex items-center gap-4 justify-center mt-4 mb-4">
-                                    <label>Who is presenting?</label>
-                                    <select
-                                        className="input-field mb-0 w-64"
-                                        value={selectedPresenter}
-                                        onChange={(e) => setSelectedPresenter(e.target.value)}
-                                    >
-                                        <option value="" disabled>Select Player</option>
-                                        {players.filter(p => !p.hasPresentedThisRound).map(p => (
-                                            <option key={p.id} value={p.id}>{p.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <button
-                                    className="btn-primary start-btn mx-auto"
-                                    onClick={handleStartRandomPresentation}
-                                    disabled={selectedCategory.presentations.length === 0 || !selectedPresenter}
-                                >
-                                    <Play size={20} /> Start Presentation
-                                </button>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    <div className="action-panel mt-6">
+                        <p className="text-gray-300 text-center mb-4 text-sm">
+                            A random player will be selected to present a random presentation from the highlighted categories.
+                        </p>
+                        <button
+                            className="btn-primary start-btn mx-auto"
+                            onClick={handleStartRandomPresentation}
+                            disabled={includedCategoryIds.length === 0 || players.length === 0 || players.every(p => p.hasPresentedThisRound)}
+                        >
+                            <Play size={20} /> Start Random Presentation
+                        </button>
+                    </div>
                 </div>
 
                 <div className="right-panel lobby">

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { socket } from '../socket';
+import { socket, getUserId } from '../socket';
 import { ArrowLeft, ArrowRight, XCircle, Star, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -22,21 +22,36 @@ export default function ControllerView() {
         socket.on('gameStateUpdate', handleGameState);
         socket.on('hostDisconnected', handleHostDisconnect);
 
+        // Auto-reconnect if refreshing
+        if (socket.connected) {
+            socket.emit('joinRoom', { roomCode, playerName: "Player", userId: getUserId() }, (res) => {
+                if (!res.success) navigate('/');
+            });
+        } else {
+            socket.connect();
+            setTimeout(() => {
+                socket.emit('joinRoom', { roomCode, playerName: "Player", userId: getUserId() }, (res) => {
+                    if (!res.success) navigate('/');
+                });
+            }, 500);
+        }
+
         return () => {
             socket.off('gameStateUpdate', handleGameState);
             socket.off('hostDisconnected', handleHostDisconnect);
         };
-    }, [navigate]);
+    }, [navigate, roomCode]);
 
-    const handleNext = () => socket.emit('nextSlide', { roomCode });
-    const handlePrev = () => socket.emit('prevSlide', { roomCode });
+    const handleNext = () => socket.emit('nextSlide', { roomCode, userId: getUserId() });
+    const handlePrev = () => socket.emit('prevSlide', { roomCode, userId: getUserId() });
     const handleLeave = () => {
+        socket.emit('leaveRoom', { roomCode, userId: getUserId(), isHost: false });
         socket.disconnect();
         navigate('/');
     };
 
     const handleVote = (score) => {
-        socket.emit('submitVote', { roomCode, score });
+        socket.emit('submitVote', { roomCode, userId: getUserId(), score });
     };
 
     if (!gameState) {

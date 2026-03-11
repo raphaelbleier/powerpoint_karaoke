@@ -142,10 +142,10 @@ app.get('/api/presentations/pdf/:id', async (req, res) => {
 const rooms = {}; // { roomCode: { ...gameState } }
 
 io.on('connection', (socket) => {
-  socket.on('createRoom', (callback) => {
+  socket.on('createRoom', ({ userId }, callback) => {
     const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
     rooms[roomCode] = {
-      host: socket.id,
+      hostUserId: userId,
       players: [],
       status: 'lobby', // 'lobby', 'presenting', 'voting', 'leaderboard'
       settings: { maxRounds: 2 },
@@ -160,19 +160,25 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
   });
 
-  // Host or player can explicitly request current state (e.g. after refresh)
-  socket.on('requestGameState', ({ roomCode }) => {
+  socket.on('requestGameState', ({ roomCode, userId }) => {
     if (rooms[roomCode]) {
+      // Auto-rejoin the socket room to receive future broadcasts
+      socket.join(roomCode);
       socket.emit('gameStateUpdate', rooms[roomCode]);
     }
   });
 
-  socket.on('joinRoom', ({ roomCode, playerName }, callback) => {
+  socket.on('joinRoom', ({ roomCode, playerName, userId }, callback) => {
     if (rooms[roomCode]) {
-      // Prevent joining if game already finished or maybe allow as audience
-      const player = { id: socket.id, name: playerName, score: 0, hasPresentedThisRound: false };
-      rooms[roomCode].players.push(player);
       socket.join(roomCode);
+      // Check if player already exists (reconnection)
+      const existingPlayer = rooms[roomCode].players.find(p => p.id === userId);
+      if (existingPlayer) {
+        existingPlayer.name = playerName; // Update name just in case
+      } else {
+        const player = { id: userId, name: playerName, score: 0, hasPresentedThisRound: false };
+        rooms[roomCode].players.push(player);
+      }
 
       io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
       callback({ success: true });
@@ -181,15 +187,15 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('updateSettings', ({ roomCode, settings }) => {
-    if (rooms[roomCode] && rooms[roomCode].host === socket.id) {
+  socket.on('updateSettings', ({ roomCode, userId, settings }) => {
+    if (rooms[roomCode] && rooms[roomCode].hostUserId === userId) {
       rooms[roomCode].settings = { ...rooms[roomCode].settings, ...settings };
       io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
     }
   });
 
-  socket.on('startPresentation', ({ roomCode, presentation, presenterId }) => {
-    if (rooms[roomCode] && rooms[roomCode].host === socket.id) {
+  socket.on('startPresentation', ({ roomCode, userId, presentation, presenterId }) => {
+    if (rooms[roomCode] && rooms[roomCode].hostUserId === userId) {
       rooms[roomCode].status = 'presenting';
       rooms[roomCode].currentPresenter = presenterId;
       rooms[roomCode].presentationState = { currentSlide: 0, presentation };
@@ -201,23 +207,23 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('startVoting', ({ roomCode }) => {
-    if (rooms[roomCode] && rooms[roomCode].host === socket.id) {
+  socket.on('startVoting', ({ roomCode, userId }) => {
+    if (rooms[roomCode] && rooms[roomCode].hostUserId === userId) {
       rooms[roomCode].status = 'voting';
       rooms[roomCode].votes = {};
       io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
     }
   });
 
-  socket.on('submitVote', ({ roomCode, score }) => {
+  socket.on('submitVote', ({ roomCode, userId, score }) => {
     if (rooms[roomCode] && rooms[roomCode].status === 'voting') {
-      rooms[roomCode].votes[socket.id] = score;
+      rooms[roomCode].votes[userId] = score;
       io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
     }
   });
 
-  socket.on('finishVoting', ({ roomCode }) => {
-    if (rooms[roomCode] && rooms[roomCode].host === socket.id) {
+  socket.on('finishVoting', ({ roomCode, userId }) => {
+    if (rooms[roomCode] && rooms[roomCode].hostUserId === userId) {
       const room = rooms[roomCode];
 
       // Calculate average score
@@ -272,25 +278,21 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {
-    for (const code in rooms) {
-      if (rooms[code].host === socket.id) {
-        io.to(code).emit('hostDisconnected');
-        delete rooms[code];
+  socket.on('leaveRoom', ({ roomCode, userId, isHost }) => {
+    if (rooms[roomCode]) {
+      if (isHost && rooms[roomCode].hostUserId === userId) {
+        io.to(roomCode).emit('hostDisconnected');
+        delete rooms[roomCode];
       } else {
-        const wasPlayer = rooms[code].players.find(p => p.id === socket.id);
-        rooms[code].players = rooms[code].players.filter(p => p.id !== socket.id);
-
-        // Remove their vote if they left
-        if (rooms[code].votes[socket.id]) {
-          delete rooms[code].votes[socket.id];
-        }
-
-        if (wasPlayer) {
-          io.to(code).emit('gameStateUpdate', rooms[code]);
-        }
+        rooms[roomCode].players = rooms[roomCode].players.filter(p => p.id !== userId);
+        if (rooms[roomCode].votes[userId]) delete rooms[roomCode].votes[userId];
+        io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
       }
     }
+  });
+
+  socket.on('disconnect', () => {
+    // We no longer delete state on brief disconnects to allow refreshing the page
   });
 });
 
