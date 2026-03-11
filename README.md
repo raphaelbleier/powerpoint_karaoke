@@ -16,15 +16,20 @@ Damit das Backend die Kategorien (Ordner) und Präsentationen (PDFs, Google Slid
   - *Wo finde ich das?* Öffne deinen Google Drive Ordner im Browser. Wenn die URL z.B. `https://drive.google.com/drive/folders/1aBcDeFgH-2iJ_kLmNoP12345` ist, dann ist `1aBcDeFgH-2iJ_kLmNoP12345` deine ID.
 
 **Zugriff (Zwei Optionen):**
-- **Option A (API Key):** 
-  - Nutze diese Option, wenn der Hauptordner in den Google-Freigabeeinstellungen auf **"Jeder, der über den Link verfügt, kann ansehen"** gesetzt ist.
-  - *Woher bekomme ich den Key?* 
-    1. Gehe zur [Google Cloud Console](https://console.cloud.google.com/).
-    2. Erstelle ein neues Projekt.
-    3. Gehe zu "APIs & Dienste" -> "Bibliothek" und aktiviere die **Google Drive API**.
-    4. Gehe zu "APIs & Dienste" -> "Anmeldedaten", klicke auf "Anmeldedaten erstellen" und wähle **"API-Schlüssel"**. 
-    5. Kopiere den Schlüssel und setze ihn als `GOOGLE_API_KEY` ein.
-- **Option B (Service Account):** Wenn der Ordner privat ist, erstelle einen Service Account in der Google Cloud Console, lade JSON File herunter und setze die darin stehenden Felder `GOOGLE_SERVICE_ACCOUNT_EMAIL` und `GOOGLE_PRIVATE_KEY` in Portainer ein. Wichtig: Du musst den privaten Google Drive Ordner für die Service-Account-Email-Adresse freigeben!
+
+**Option A (API Key - Einfachster Weg für öffentliche Ordner):**
+Wenn dein Google Drive Hauptordner in den Freigabeeinstellungen auf **"Jeder, der über den Link verfügt, kann ansehen"** gesetzt ist, reicht dein API Key völlig aus!
+- Trage deinen erstellten Schlüssel in Portainer als Environment Variable `GOOGLE_API_KEY` ein.
+- Du kannst die Variablen `GOOGLE_SERVICE_ACCOUNT_EMAIL` und `GOOGLE_PRIVATE_KEY` dann leer lassen.
+
+**Option B (Service Account - Für private Ordner):**
+Nur notwendig, wenn dein Ordner privat ist und bleiben soll:
+1. Gehe in der Google Cloud Console auf "IAM & Verwaltung" -> "Dienstkonten".
+2. Erstelle ein Dienstkonto (z.B. `kapopo-backend`).
+3. Kopiere die E-Mail-Adresse des Dienstkontos und füge sie in deinem Google Drive Ordner als "Betrachter" hinzu!
+4. Gehe im Dienstkonto auf "Schlüssel" -> "Neuen Schlüssel erstellen" -> JSON.
+5. Kopiere den Wert `"client_email"` in Portainer (`GOOGLE_SERVICE_ACCOUNT_EMAIL`).
+6. Kopiere den EXAKTEN, kompletten `"private_key"` (inklusive `-----BEGIN PRIVATE KEY-----` und `\n`) in Portainer (`GOOGLE_PRIVATE_KEY`).
 
 ### Google Drive Struktur
 - Hauptordner (z.B. "Powerpoint Karaoke") -> ID ist in POWERPOINTS_FOLDER_ID

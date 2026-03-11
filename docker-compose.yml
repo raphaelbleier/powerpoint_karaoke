@@ -8,10 +8,12 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # Google Drive API Settings (Set these in Portainer Environment variables or via .env file)
+      # Hier trägst du deine echte ID und den API Key ein:
       - PORT=8080
-      - POWERPOINTS_FOLDER_ID=${POWERPOINTS_FOLDER_ID}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - GOOGLE_SERVICE_ACCOUNT_EMAIL=${GOOGLE_SERVICE_ACCOUNT_EMAIL}
-      - GOOGLE_PRIVATE_KEY=${GOOGLE_PRIVATE_KEY}
+      - POWERPOINTS_FOLDER_ID=1aBcDeFgH-...
+      - GOOGLE_API_KEY=AIzaSy...
+      
+      # Diese beiden kannst du komplett löschen, wenn du den API-Key benutzt:
+      # - GOOGLE_SERVICE_ACCOUNT_EMAIL=
+      # - GOOGLE_PRIVATE_KEY=
     restart: unless-stopped
