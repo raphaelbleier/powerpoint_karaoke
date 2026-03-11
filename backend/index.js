@@ -40,6 +40,7 @@ const setupDriveApi = () => {
 
 const drive = setupDriveApi();
 const ROOT_FOLDER_ID = process.env.POWERPOINTS_FOLDER_ID || '';
+const DEFAULT_SETTINGS = { maxRounds: 2 };
 
 // Cache for Categories and Presentations
 let categoriesCache = [];
@@ -160,6 +161,24 @@ const canControlPresentation = (room, userId) => {
   return room.hostUserId === userId || room.currentPresenter === userId;
 };
 
+const resetRoomForNextGame = (room, { resetSettings = false } = {}) => {
+  room.status = 'lobby';
+  room.currentRound = 1;
+  room.currentPresenter = null;
+  room.votes = {};
+  room.presentationState = null;
+
+  if (resetSettings) {
+    room.settings = { ...DEFAULT_SETTINGS };
+  }
+
+  room.players = room.players.map(player => ({
+    ...player,
+    score: 0,
+    hasPresentedThisRound: false
+  }));
+};
+
 io.on('connection', (socket) => {
   socket.on('createRoom', ({ userId }, callback) => {
     const roomCode = generateRoomCode();
@@ -167,7 +186,7 @@ io.on('connection', (socket) => {
       hostUserId: userId,
       players: [],
       status: 'lobby', // 'lobby', 'presenting', 'voting', 'leaderboard'
-      settings: { maxRounds: 2 },
+      settings: { ...DEFAULT_SETTINGS },
       currentRound: 1,
       currentPresenter: null,
       votes: {}, // { voterId: score }
@@ -302,6 +321,16 @@ io.on('connection', (socket) => {
       room.votes = {};
 
       io.to(roomCode).emit('gameStateUpdate', room);
+    }
+  });
+
+  socket.on('restartGame', ({ roomCode, userId, mode }) => {
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
+    const room = rooms[normalizedRoomCode];
+
+    if (room && room.hostUserId === userId) {
+      resetRoomForNextGame(room, { resetSettings: mode === 'new' });
+      io.to(normalizedRoomCode).emit('gameStateUpdate', room);
     }
   });
 

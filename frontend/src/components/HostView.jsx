@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { socket, getUserId, API_BASE_URL, ensureSocketConnected, normalizeRoomCode } from '../socket';
 import Slideshow from './Slideshow';
-import { Users, Play, Settings, Star, Trophy, RefreshCw } from 'lucide-react';
+import { Users, Play, Settings, Star, Trophy, RefreshCw, Crown, Medal, RotateCcw, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MotionDiv = motion.div;
@@ -146,9 +146,24 @@ export default function HostView() {
         navigate('/');
     };
 
+    const handleRestartGame = (mode) => {
+        if (mode === 'new') {
+            setIncludedCategoryIds(categories.map(category => category.id));
+            socket.emit('updateSettings', {
+                roomCode: normalizeRoomCode(roomCode),
+                userId: getUserId(),
+                settings: { maxRounds: 2 }
+            });
+        }
+
+        socket.emit('restartGame', { roomCode: normalizeRoomCode(roomCode), userId: getUserId(), mode });
+    };
+
     if (!gameState) return <div className="host-container flex-center"><h3>Waiting for game state...</h3></div>;
 
     const { players, status, currentRound, settings, currentPresenter, votes } = gameState;
+    const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+    const podiumPlayers = [sortedPlayers[1], sortedPlayers[0], sortedPlayers[2]].filter(Boolean);
 
     if (status === 'presenting' && gameState.presentationState) {
         return (
@@ -187,24 +202,57 @@ export default function HostView() {
     }
 
     if (status === 'leaderboard') {
-        const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
         return (
             <div className="host-container">
                 <div className="top-bar">
                     <h2>Game Over - Final Results!</h2>
+                    <div className="player-count final-room-note">
+                        <span>Players stay connected in room {normalizeRoomCode(roomCode)}</span>
+                    </div>
                 </div>
-                <div className="card-grid" style={{ maxWidth: 800, margin: '0 auto' }}>
-                    <div className="card w-full">
+                <div className="leaderboard-layout">
+                    <div className="card w-full leaderboard-card">
                         <Trophy size={64} className="mx-auto text-yellow-400 mb-6" />
+                        <div className="leaderboard-heading">
+                            <h3 className="leaderboard-title">Final Podium</h3>
+                            <p className="subtitle leaderboard-subtitle">After {settings.maxRounds} rounds, here are the final scores.</p>
+                        </div>
+
+                        <div className="podium-grid">
+                            {podiumPlayers.map((player) => {
+                                const placement = player.id === sortedPlayers[0]?.id ? 1 : player.id === sortedPlayers[1]?.id ? 2 : 3;
+                                const icon = placement === 1 ? <Crown size={28} /> : <Medal size={24} />;
+
+                                return (
+                                    <div key={player.id} className={`podium-card place-${placement}`}>
+                                        <div className="podium-badge">{icon}</div>
+                                        <span className="podium-place">#{placement}</span>
+                                        <h4>{player.name}</h4>
+                                        <p>{player.score} pts</p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
                         <ul className="player-list">
                             {sortedPlayers.map((p, index) => (
-                                <li key={p.id} className="flex justify-between items-center bg-gray-800 p-4 rounded mb-2">
+                                <li key={p.id} className={`leaderboard-row ${index < 3 ? 'leaderboard-top-three' : ''}`}>
                                     <span className="font-bold text-xl">#{index + 1} {p.name}</span>
                                     <span className="text-pink-400 font-bold text-xl">{p.score} pts</span>
                                 </li>
                             ))}
                         </ul>
-                        <button onClick={handleLeaveRoom} className="btn-secondary mt-8">Return Home</button>
+
+                        <div className="leaderboard-actions">
+                            <button onClick={() => handleRestartGame('recreate')} className="btn-primary leaderboard-action-btn">
+                                <RotateCcw size={20} /> Replay Same Setup
+                            </button>
+                            <button onClick={() => handleRestartGame('new')} className="btn-secondary leaderboard-action-btn">
+                                <Sparkles size={20} /> Create New Game
+                            </button>
+                        </div>
+
+                        <button onClick={handleLeaveRoom} className="btn-secondary mt-8">Close Room</button>
                     </div>
                 </div>
             </div>
