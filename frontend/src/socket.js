@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.DEV ? 'http://localhost:8080' : '/';
+const SOCKET_URL = import.meta.env.DEV ? `http://${window.location.hostname}:8080` : '/';
 
 export const socket = io(SOCKET_URL, {
     autoConnect: false

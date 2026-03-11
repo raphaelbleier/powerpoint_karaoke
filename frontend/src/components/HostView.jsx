@@ -92,7 +92,7 @@ export default function HostView() {
 
     const handleRefreshCategories = async () => {
         setLoading(true);
-        const API_URL = import.meta.env.DEV ? 'http://localhost:8080' : '';
+        const API_URL = import.meta.env.DEV ? `http://${window.location.hostname}:8080` : '';
         try {
             const res = await fetch(`${API_URL}/api/refresh`, { method: 'POST' });
             const data = await res.json();
