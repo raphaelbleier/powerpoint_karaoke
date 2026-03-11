@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  powerpoint-karaoke:
+    # Ersetze <your-username> und <repository> mit den echten Werten deines GitHub Repos
+    image: ghcr.io/<your-username>/powerpoint_karaoke:latest
+    container_name: kapopo_clone
+    ports:
+      - "8080:8080"
+    environment:
+      # Google Drive API Settings (Set these in Portainer Environment variables or via .env file)
+      - PORT=8080
+      - POWERPOINTS_FOLDER_ID=${POWERPOINTS_FOLDER_ID}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_SERVICE_ACCOUNT_EMAIL=${GOOGLE_SERVICE_ACCOUNT_EMAIL}
+      - GOOGLE_PRIVATE_KEY=${GOOGLE_PRIVATE_KEY}
+    restart: unless-stopped
