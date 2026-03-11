@@ -21,9 +21,13 @@ export default function Home() {
         if (!joinCode || !playerName) return;
 
         socket.connect();
-        socket.emit('joinRoom', { roomCode: joinCode, playerName, userId: getUserId() }, (res) => {
+        socket.emit('joinRoom', { roomCode, playerName, userId: getUserId() }, (res) => {
             if (res.success) {
-                navigate(`/controller/${joinCode}`);
+                if (res.isHost) {
+                    navigate(`/host/${joinCode}`);
+                } else {
+                    navigate(`/controller/${joinCode}`);
+                }
             } else {
                 alert(res.message);
             }

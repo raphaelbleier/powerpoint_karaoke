@@ -112,7 +112,8 @@ export default function ControllerView() {
                 </div>
             );
         } else {
-            const presenterName = players.find(p => p.id === currentPresenter)?.name || 'Someone';
+            const presenterObj = players.find(p => p.id === currentPresenter);
+            const presenterName = presenterObj?.name || 'Someone';
             return (
                 <div className="controller-container flex-center">
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="waiting-box">
@@ -120,6 +121,17 @@ export default function ControllerView() {
                         <div className="pulsing-circle" style={{ background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)' }}></div>
                         <p className="text-xl font-bold text-green-400">{presenterName}</p>
                         <p>is currently presenting.</p>
+
+                        {/* Debug info to help diagnose the mobile mismatch */}
+                        <div className="mt-8 text-xs text-gray-500 text-left bg-gray-900 p-2 rounded max-w-xs break-all mx-auto">
+                            <p className="font-bold underline mb-1">Debug Info:</p>
+                            <p>My ID: {getUserId()}</p>
+                            <p>Presenter ID: {currentPresenter}</p>
+                            <p>Matches: {isMePresenting ? 'Yes' : 'No'}</p>
+                            <p>Players Array Length: {players.length}</p>
+                            <p>Found Name: {presenterObj ? 'Yes' : 'No'}</p>
+                            <p>Current Presenter Name inside array: {presenterObj?.name}</p>
+                        </div>
                     </motion.div>
                 </div>
             );

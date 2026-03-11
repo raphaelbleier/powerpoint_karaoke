@@ -171,6 +171,12 @@ io.on('connection', (socket) => {
   socket.on('joinRoom', ({ roomCode, playerName, userId }, callback) => {
     if (rooms[roomCode]) {
       socket.join(roomCode);
+      // If the host is joining their own room (e.g., from the same browser/refreshing), do NOT add them as a player.
+      if (rooms[roomCode].hostUserId === userId) {
+        callback({ success: true, isHost: true });
+        return;
+      }
+
       // Check if player already exists (reconnection)
       const existingPlayer = rooms[roomCode].players.find(p => p.id === userId);
       if (existingPlayer) {
@@ -181,7 +187,7 @@ io.on('connection', (socket) => {
       }
 
       io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
-      callback({ success: true });
+      callback({ success: true, isHost: false });
     } else {
       callback({ success: false, message: 'Room not found' });
     }
