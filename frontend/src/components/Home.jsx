@@ -1,52 +1,68 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { socket, getUserId } from '../socket';
-import { Monitor, Smartphone, Users } from 'lucide-react';
+import { socket, getUserId, ensureSocketConnected, normalizeRoomCode, setStoredPlayerName } from '../socket';
+import { Monitor, Smartphone } from 'lucide-react';
 import { motion } from 'framer-motion';
+
+const MotionDiv = motion.div;
 
 export default function Home() {
     const navigate = useNavigate();
     const [joinCode, setJoinCode] = useState('');
     const [playerName, setPlayerName] = useState('');
 
-    const handleCreateRoom = () => {
-        socket.connect();
-        socket.emit('createRoom', { userId: getUserId() }, (res) => {
-            navigate(`/host/${res.roomCode}`);
-        });
+    const handleCreateRoom = async () => {
+        try {
+            await ensureSocketConnected();
+            socket.emit('createRoom', { userId: getUserId() }, (res) => {
+                navigate(`/host/${res.roomCode}`);
+            });
+        } catch (error) {
+            console.error('Failed to create room:', error);
+            alert('Could not connect to the server. Please try again.');
+        }
     };
 
-    const handleJoinRoom = (e) => {
+    const handleJoinRoom = async (e) => {
         e.preventDefault();
-        if (!joinCode || !playerName) return;
+        const normalizedRoomCode = normalizeRoomCode(joinCode);
+        const normalizedPlayerName = playerName.trim();
 
-        socket.connect();
-        socket.emit('joinRoom', { roomCode, playerName, userId: getUserId() }, (res) => {
-            if (res.success) {
-                if (res.isHost) {
-                    navigate(`/host/${joinCode}`);
+        if (!normalizedRoomCode || !normalizedPlayerName) return;
+
+        try {
+            await ensureSocketConnected();
+            socket.emit('joinRoom', { roomCode: normalizedRoomCode, playerName: normalizedPlayerName, userId: getUserId() }, (res) => {
+                if (res.success) {
+                    setStoredPlayerName(normalizedPlayerName);
+                    if (res.isHost) {
+                        navigate(`/host/${normalizedRoomCode}`);
+                    } else {
+                        navigate(`/controller/${normalizedRoomCode}`);
+                    }
                 } else {
-                    navigate(`/controller/${joinCode}`);
+                    alert(res.message);
                 }
-            } else {
-                alert(res.message);
-            }
-        });
+            });
+        } catch (error) {
+            console.error('Failed to join room:', error);
+            alert('Could not connect to the server. Please try again.');
+        }
     };
 
     return (
         <div className="home-container">
-            <motion.div
+            <MotionDiv
                 initial={{ y: -50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
             >
                 <h1 className="title">Kapopo <span>Clone</span></h1>
                 <p className="subtitle">PowerPoint Karaoke powered by Google Drive</p>
-            </motion.div>
+            </MotionDiv>
 
             <div className="card-grid">
-                <motion.div
+                <MotionDiv
                     className="card host-card"
                     initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.2 }}
                 >
@@ -56,9 +72,9 @@ export default function Home() {
                     <button onClick={handleCreateRoom} className="btn-primary">
                         Create Room
                     </button>
-                </motion.div>
+                </MotionDiv>
 
-                <motion.div
+                <MotionDiv
                     className="card join-card"
                     initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 }}
                 >
@@ -70,7 +86,7 @@ export default function Home() {
                             type="text"
                             placeholder="Room Code (e.g. 1234)"
                             value={joinCode}
-                            onChange={(e) => setJoinCode(e.target.value)}
+                            onChange={(e) => setJoinCode(normalizeRoomCode(e.target.value))}
                             className="input-field"
                             maxLength={4}
                         />
@@ -85,7 +101,7 @@ export default function Home() {
                             Join Room
                         </button>
                     </form>
-                </motion.div>
+                </MotionDiv>
             </div>
         </div>
     );

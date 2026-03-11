@@ -1,9 +1,13 @@
-import React, { useEffect, useRef } from 'react';
-import { Maximize2, XCircle } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+
+const MotionDiv = motion.div;
 
 export default function Slideshow({ presentation, currentSlide, onEnd, onNext, onPrev }) {
     const isGoogleSlide = presentation.type === 'slide';
+    const googleSlidesUrl = `${presentation.url}#slide=id.p${currentSlide + 1}`;
+    const pdfUrl = `${presentation.url}#page=${currentSlide + 1}&view=Fit`;
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -34,7 +38,7 @@ export default function Slideshow({ presentation, currentSlide, onEnd, onNext, o
     // Realistically for PDF: We can use native PDF viewer with `#page=${currentSlide + 1}`.
 
     return (
-        <motion.div
+        <MotionDiv
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
@@ -52,14 +56,16 @@ export default function Slideshow({ presentation, currentSlide, onEnd, onNext, o
             <div className="slideshow-content">
                 {isGoogleSlide ? (
                     <iframe
-                        src={`${presentation.url}#slide=${currentSlide + 1}`}
+                        key={`${presentation.id}-${currentSlide}`}
+                        src={googleSlidesUrl}
                         className="presentation-frame"
                         allowFullScreen
                         title={presentation.title}
                     />
                 ) : (
                     <object
-                        data={`${presentation.url}#page=${currentSlide + 1}&view=Fit`}
+                        key={`${presentation.id}-${currentSlide}`}
+                        data={pdfUrl}
                         type="application/pdf"
                         className="presentation-frame"
                     >
@@ -74,6 +80,6 @@ export default function Slideshow({ presentation, currentSlide, onEnd, onNext, o
                 <p className="hud-hint">Controllers can swipe or press Next/Prev on their phones.</p>
                 <p className="hud-hint">Note: for Google Slides, you might need to click the screen once to focus before keyboard/controller works natively, or use the built-in slide buttons.</p>
             </div>
-        </motion.div>
+        </MotionDiv>
     );
 }

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { socket, getUserId } from '../socket';
+import { socket, getUserId, ensureSocketConnected, getStoredPlayerName, normalizeRoomCode } from '../socket';
 import { ArrowLeft, ArrowRight, XCircle, Star, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
+
+const MotionDiv = motion.div;
 
 export default function ControllerView() {
     const { roomCode } = useParams();
@@ -10,8 +12,12 @@ export default function ControllerView() {
     const [gameState, setGameState] = useState(null);
 
     useEffect(() => {
+        let isActive = true;
+
         const handleGameState = (state) => {
-            setGameState(state);
+            if (isActive) {
+                setGameState(state);
+            }
         };
 
         const handleHostDisconnect = () => {
@@ -19,50 +25,72 @@ export default function ControllerView() {
             navigate('/');
         };
 
+        const joinRoom = async () => {
+            try {
+                await ensureSocketConnected();
+
+                const storedPlayerName = getStoredPlayerName();
+                if (!storedPlayerName) {
+                    alert('Your player name is missing. Please join the room again.');
+                    navigate('/');
+                    return;
+                }
+
+                socket.emit('joinRoom', {
+                    roomCode: normalizeRoomCode(roomCode),
+                    playerName: storedPlayerName,
+                    userId: getUserId()
+                }, (res) => {
+                    if (!isActive) {
+                        return;
+                    }
+
+                    if (!res.success || res.isHost) {
+                        navigate('/');
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to reconnect controller:', error);
+                if (isActive) {
+                    alert('Could not reconnect to the room.');
+                    navigate('/');
+                }
+            }
+        };
+
         socket.on('gameStateUpdate', handleGameState);
         socket.on('hostDisconnected', handleHostDisconnect);
 
-        // Auto-reconnect if refreshing
-        if (socket.connected) {
-            socket.emit('joinRoom', { roomCode, playerName: "Player", userId: getUserId() }, (res) => {
-                if (!res.success) navigate('/');
-            });
-        } else {
-            socket.connect();
-            setTimeout(() => {
-                socket.emit('joinRoom', { roomCode, playerName: "Player", userId: getUserId() }, (res) => {
-                    if (!res.success) navigate('/');
-                });
-            }, 500);
-        }
+        joinRoom();
 
         return () => {
+            isActive = false;
             socket.off('gameStateUpdate', handleGameState);
             socket.off('hostDisconnected', handleHostDisconnect);
         };
     }, [navigate, roomCode]);
 
-    const handleNext = () => socket.emit('nextSlide', { roomCode, userId: getUserId() });
-    const handlePrev = () => socket.emit('prevSlide', { roomCode, userId: getUserId() });
+    const handleNext = () => socket.emit('nextSlide', { roomCode: normalizeRoomCode(roomCode), userId: getUserId() });
+    const handlePrev = () => socket.emit('prevSlide', { roomCode: normalizeRoomCode(roomCode), userId: getUserId() });
     const handleLeave = () => {
-        socket.emit('leaveRoom', { roomCode, userId: getUserId(), isHost: false });
+        socket.emit('leaveRoom', { roomCode: normalizeRoomCode(roomCode), userId: getUserId(), isHost: false });
         socket.disconnect();
         navigate('/');
     };
 
     const handleVote = (score) => {
-        socket.emit('submitVote', { roomCode, userId: getUserId(), score });
+        socket.emit('submitVote', { roomCode: normalizeRoomCode(roomCode), userId: getUserId(), score });
     };
 
     if (!gameState) {
         return (
             <div className="controller-container flex-center">
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="waiting-box">
+                <MotionDiv initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="waiting-box">
                     <h2>Room: {roomCode}</h2>
                     <div className="pulsing-circle"></div>
                     <p>You're in! Waiting for the host...</p>
                     <button onClick={handleLeave} className="btn-secondary mt-10">Leave Room</button>
-                </motion.div>
+                </MotionDiv>
             </div>
         );
     }
@@ -73,13 +101,13 @@ export default function ControllerView() {
     if (status === 'lobby') {
         return (
             <div className="controller-container flex-center">
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="waiting-box">
+                <MotionDiv initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="waiting-box">
                     <h2>Room: {roomCode}</h2>
                     <div className="pulsing-circle"></div>
                     <p>Waiting in Lobby...</p>
                     <p className="mt-4 text-blue-400">Round {gameState.currentRound} of {gameState.settings.maxRounds}</p>
                     <button onClick={handleLeave} className="btn-secondary mt-10">Leave Room</button>
-                </motion.div>
+                </MotionDiv>
             </div>
         );
     }
@@ -116,23 +144,13 @@ export default function ControllerView() {
             const presenterName = presenterObj?.name || 'Someone';
             return (
                 <div className="controller-container flex-center">
-                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="waiting-box">
+                    <MotionDiv initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="waiting-box">
                         <h2>👀 Look at the screen!</h2>
                         <div className="pulsing-circle" style={{ background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)' }}></div>
                         <p className="text-xl font-bold text-green-400">{presenterName}</p>
                         <p>is currently presenting.</p>
 
-                        {/* Debug info to help diagnose the mobile mismatch */}
-                        <div className="mt-8 text-xs text-gray-500 text-left bg-gray-900 p-2 rounded max-w-xs break-all mx-auto">
-                            <p className="font-bold underline mb-1">Debug Info:</p>
-                            <p>My ID: {getUserId()}</p>
-                            <p>Presenter ID: {currentPresenter}</p>
-                            <p>Matches: {isMePresenting ? 'Yes' : 'No'}</p>
-                            <p>Players Array Length: {players.length}</p>
-                            <p>Found Name: {presenterObj ? 'Yes' : 'No'}</p>
-                            <p>Current Presenter Name inside array: {presenterObj?.name}</p>
-                        </div>
-                    </motion.div>
+                    </MotionDiv>
                 </div>
             );
         }
@@ -185,12 +203,12 @@ export default function ControllerView() {
     if (status === 'leaderboard') {
         return (
             <div className="controller-container flex-center">
-                <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="waiting-box">
+                <MotionDiv initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="waiting-box">
                     <Award size={64} className="mx-auto text-yellow-400 mb-4" />
                     <h2 className="text-3xl font-bold mb-2">Game Over!</h2>
                     <p className="text-xl text-gray-400">Look at the big screen for final results!</p>
                     <button onClick={handleLeave} className="btn-secondary mt-10">Return to Home</button>
-                </motion.div>
+                </MotionDiv>
             </div>
         );
     }

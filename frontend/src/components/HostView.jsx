@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { socket, getUserId } from '../socket';
+import { socket, getUserId, API_BASE_URL, ensureSocketConnected, normalizeRoomCode } from '../socket';
 import Slideshow from './Slideshow';
 import { Users, Play, Settings, Star, Trophy, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const MotionDiv = motion.div;
+const MotionLi = motion.li;
 
 export default function HostView() {
     const { roomCode } = useParams();
@@ -14,42 +17,65 @@ export default function HostView() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const API_URL = import.meta.env.DEV ? 'http://localhost:8080' : '';
+        let isActive = true;
 
-        fetch(`${API_URL}/api/categories`)
+        fetch(`${API_BASE_URL}/api/categories`)
             .then(res => res.json())
             .then(data => {
+                if (!isActive) {
+                    return;
+                }
+
                 setCategories(data);
-                // By default, include all categories that have presentations
-                setIncludedCategoryIds(data.map(c => c.id));
+                setIncludedCategoryIds(currentIds => currentIds.length > 0 ? currentIds : data.map(c => c.id));
                 setLoading(false);
             })
             .catch(err => {
                 console.error('Failed to fetch categories:', err);
-                setLoading(false);
+                if (isActive) {
+                    setLoading(false);
+                }
             });
 
         const handleGameState = (state) => {
-            setGameState(state);
+            if (isActive) {
+                setGameState(state);
+            }
+        };
+
+        const requestGameState = async () => {
+            try {
+                await ensureSocketConnected();
+                socket.emit('requestGameState', { roomCode: normalizeRoomCode(roomCode), userId: getUserId() }, (res) => {
+                    if (!isActive) {
+                        return;
+                    }
+
+                    if (!res?.success) {
+                        alert('Room not found.');
+                        navigate('/');
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to request game state:', error);
+                if (isActive) {
+                    alert('Could not connect to the server.');
+                    navigate('/');
+                }
+            }
         };
 
         socket.on('gameStateUpdate', handleGameState);
-
-        // Attempt to fetch state in case we missed the initial emit or refreshed
-        if (socket.connected) {
-            socket.emit('requestGameState', { roomCode, userId: getUserId() });
-        } else {
-            socket.connect();
-            setTimeout(() => socket.emit('requestGameState', { roomCode, userId: getUserId() }), 500);
-        }
+        requestGameState();
 
         return () => {
+            isActive = false;
             socket.off('gameStateUpdate', handleGameState);
         };
-    }, [roomCode]);
+    }, [navigate, roomCode]);
 
-    const handleNextSlide = () => socket.emit('nextSlide', { roomCode });
-    const handlePrevSlide = () => socket.emit('prevSlide', { roomCode });
+    const handleNextSlide = () => socket.emit('nextSlide', { roomCode: normalizeRoomCode(roomCode), userId: getUserId() });
+    const handlePrevSlide = () => socket.emit('prevSlide', { roomCode: normalizeRoomCode(roomCode), userId: getUserId() });
 
     const handleStartRandomPresentation = () => {
         if (!gameState) return;
@@ -71,7 +97,7 @@ export default function HostView() {
         const randomPres = randomCat.presentations[Math.floor(Math.random() * randomCat.presentations.length)];
         const randomPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
 
-        socket.emit('startPresentation', { roomCode, userId: getUserId(), presentation: randomPres, presenterId: randomPlayer.id });
+        socket.emit('startPresentation', { roomCode: normalizeRoomCode(roomCode), userId: getUserId(), presentation: randomPres, presenterId: randomPlayer.id });
     };
 
     const toggleCategory = (id) => {
@@ -82,19 +108,18 @@ export default function HostView() {
 
     const handleEndPresentation = () => {
         // Move to voting phase instead of ending immediately
-        socket.emit('startVoting', { roomCode, userId: getUserId() });
+        socket.emit('startVoting', { roomCode: normalizeRoomCode(roomCode), userId: getUserId() });
     };
 
     const handleUpdateSettings = (e) => {
         const maxRounds = parseInt(e.target.value) || 1;
-        socket.emit('updateSettings', { roomCode, userId: getUserId(), settings: { maxRounds } });
+        socket.emit('updateSettings', { roomCode: normalizeRoomCode(roomCode), userId: getUserId(), settings: { maxRounds } });
     };
 
     const handleRefreshCategories = async () => {
         setLoading(true);
-        const API_URL = import.meta.env.DEV ? `http://${window.location.hostname}:8080` : '';
         try {
-            const res = await fetch(`${API_URL}/api/refresh`, { method: 'POST' });
+            const res = await fetch(`${API_BASE_URL}/api/refresh`, { method: 'POST' });
             const data = await res.json();
             if (data.success) {
                 setCategories(data.categories);
@@ -116,7 +141,8 @@ export default function HostView() {
     };
 
     const handleLeaveRoom = () => {
-        socket.emit('leaveRoom', { roomCode, userId: getUserId(), isHost: true });
+        socket.emit('leaveRoom', { roomCode: normalizeRoomCode(roomCode), userId: getUserId(), isHost: true });
+        socket.disconnect();
         navigate('/');
     };
 
@@ -143,7 +169,7 @@ export default function HostView() {
 
         return (
             <div className="host-container flex-center">
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="card text-center" style={{ maxWidth: 600 }}>
+                <MotionDiv initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="card text-center" style={{ maxWidth: 600 }}>
                     <Star size={64} className="mx-auto text-yellow-400 mb-4" />
                     <h2>Voting Phase</h2>
                     <p className="subtitle mt-2">Rate {presenter?.name}'s presentation!</p>
@@ -152,10 +178,10 @@ export default function HostView() {
                         {votesCount} / {totalVoters} Votes Submitted
                     </div>
 
-                    <button onClick={() => socket.emit('finishVoting', { roomCode, userId: getUserId() })} className="btn-primary mt-4">
+                    <button onClick={() => socket.emit('finishVoting', { roomCode: normalizeRoomCode(roomCode), userId: getUserId() })} className="btn-primary mt-4">
                         Reveal Score & Continue
                     </button>
-                </motion.div>
+                </MotionDiv>
             </div>
         );
     }
@@ -265,7 +291,7 @@ export default function HostView() {
                         <AnimatePresence>
                             {players.length === 0 && <p className="empty-state">Waiting for players to join...</p>}
                             {players.map(p => (
-                                <motion.li
+                                <MotionLi
                                     key={p.id}
                                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
                                     className="flex justify-between items-center"
@@ -274,7 +300,7 @@ export default function HostView() {
                                         {p.name} {p.hasPresentedThisRound && <span className="text-xs text-green-400 ml-2">(Done)</span>}
                                     </span>
                                     <span className="font-bold text-blue-400">{p.score} pts</span>
-                                </motion.li>
+                                </MotionLi>
                             ))}
                         </AnimatePresence>
                     </ul>

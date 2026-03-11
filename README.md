@@ -42,5 +42,5 @@ Nur notwendig, wenn dein Ordner privat ist und bleiben soll:
 Das Backend synchronisiert sich automatisch alle 5 Minuten neu mit dem Drive. Du musst ihn nicht neu starten.
 
 ## Lokale Entwicklung
-1. In den `backend` Ordner wechseln: `npm run dev` (bzw. `node index.js`)
+1. In den `backend` Ordner wechseln: `npm run dev`
 2. In den `frontend` Ordner wechseln: `npm run dev`

@@ -141,9 +141,28 @@ app.get('/api/presentations/pdf/:id', async (req, res) => {
 // Socket.io for Multiplayer
 const rooms = {}; // { roomCode: { ...gameState } }
 
+const normalizeRoomCode = (roomCode = '') => roomCode.trim().toUpperCase();
+
+const generateRoomCode = () => {
+  let roomCode;
+  do {
+    roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+  } while (rooms[roomCode]);
+
+  return roomCode;
+};
+
+const canControlPresentation = (room, userId) => {
+  if (!room || !room.presentationState) {
+    return false;
+  }
+
+  return room.hostUserId === userId || room.currentPresenter === userId;
+};
+
 io.on('connection', (socket) => {
   socket.on('createRoom', ({ userId }, callback) => {
-    const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const roomCode = generateRoomCode();
     rooms[roomCode] = {
       hostUserId: userId,
       players: [],
@@ -160,33 +179,51 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
   });
 
-  socket.on('requestGameState', ({ roomCode, userId }) => {
-    if (rooms[roomCode]) {
+  socket.on('requestGameState', ({ roomCode, userId }, callback = () => {}) => {
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
+
+    if (rooms[normalizedRoomCode]) {
       // Auto-rejoin the socket room to receive future broadcasts
-      socket.join(roomCode);
-      socket.emit('gameStateUpdate', rooms[roomCode]);
+      socket.join(normalizedRoomCode);
+      socket.emit('gameStateUpdate', rooms[normalizedRoomCode]);
+      callback({ success: true });
+    } else {
+      callback({ success: false, message: 'Room not found' });
     }
   });
 
   socket.on('joinRoom', ({ roomCode, playerName, userId }, callback) => {
-    if (rooms[roomCode]) {
-      socket.join(roomCode);
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
+    const normalizedPlayerName = typeof playerName === 'string' ? playerName.trim() : '';
+
+    if (!normalizedRoomCode) {
+      callback({ success: false, message: 'Invalid room code' });
+      return;
+    }
+
+    if (!normalizedPlayerName) {
+      callback({ success: false, message: 'Player name is required' });
+      return;
+    }
+
+    if (rooms[normalizedRoomCode]) {
+      socket.join(normalizedRoomCode);
       // If the host is joining their own room (e.g., from the same browser/refreshing), do NOT add them as a player.
-      if (rooms[roomCode].hostUserId === userId) {
+      if (rooms[normalizedRoomCode].hostUserId === userId) {
         callback({ success: true, isHost: true });
         return;
       }
 
       // Check if player already exists (reconnection)
-      const existingPlayer = rooms[roomCode].players.find(p => p.id === userId);
+      const existingPlayer = rooms[normalizedRoomCode].players.find(p => p.id === userId);
       if (existingPlayer) {
-        existingPlayer.name = playerName; // Update name just in case
+        existingPlayer.name = normalizedPlayerName;
       } else {
-        const player = { id: userId, name: playerName, score: 0, hasPresentedThisRound: false };
-        rooms[roomCode].players.push(player);
+        const player = { id: userId, name: normalizedPlayerName, score: 0, hasPresentedThisRound: false };
+        rooms[normalizedRoomCode].players.push(player);
       }
 
-      io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
+      io.to(normalizedRoomCode).emit('gameStateUpdate', rooms[normalizedRoomCode]);
       callback({ success: true, isHost: false });
     } else {
       callback({ success: false, message: 'Room not found' });
@@ -268,19 +305,23 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('nextSlide', ({ roomCode }) => {
-    if (rooms[roomCode] && rooms[roomCode].presentationState) {
-      // Only the presenter should ideally navigate, or the host. Let's just allow it globally for simplicity 
-      // but in frontend we restrict the button.
-      rooms[roomCode].presentationState.currentSlide++;
-      io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
+  socket.on('nextSlide', ({ roomCode, userId }) => {
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
+    const room = rooms[normalizedRoomCode];
+
+    if (canControlPresentation(room, userId)) {
+      room.presentationState.currentSlide++;
+      io.to(normalizedRoomCode).emit('gameStateUpdate', room);
     }
   });
 
-  socket.on('prevSlide', ({ roomCode }) => {
-    if (rooms[roomCode] && rooms[roomCode].presentationState) {
-      rooms[roomCode].presentationState.currentSlide = Math.max(0, rooms[roomCode].presentationState.currentSlide - 1);
-      io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
+  socket.on('prevSlide', ({ roomCode, userId }) => {
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
+    const room = rooms[normalizedRoomCode];
+
+    if (canControlPresentation(room, userId)) {
+      room.presentationState.currentSlide = Math.max(0, room.presentationState.currentSlide - 1);
+      io.to(normalizedRoomCode).emit('gameStateUpdate', room);
     }
   });
 
