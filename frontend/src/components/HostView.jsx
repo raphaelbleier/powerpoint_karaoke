@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { socket } from '../socket';
 import Slideshow from './Slideshow';
-import { Users, Play, Settings, Star, Trophy } from 'lucide-react';
+import { Users, Play, Settings, Star, Trophy, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function HostView() {
@@ -34,10 +34,18 @@ export default function HostView() {
 
         socket.on('gameStateUpdate', handleGameState);
 
+        // Attempt to fetch state in case we missed the initial emit or refreshed
+        if (socket.connected) {
+            socket.emit('requestGameState', { roomCode });
+        } else {
+            socket.connect();
+            setTimeout(() => socket.emit('requestGameState', { roomCode }), 500);
+        }
+
         return () => {
             socket.off('gameStateUpdate', handleGameState);
         };
-    }, []);
+    }, [roomCode]);
 
     const handleNextSlide = () => socket.emit('nextSlide', { roomCode });
     const handlePrevSlide = () => socket.emit('prevSlide', { roomCode });
@@ -60,6 +68,21 @@ export default function HostView() {
     const handleUpdateSettings = (e) => {
         const maxRounds = parseInt(e.target.value) || 1;
         socket.emit('updateSettings', { roomCode, settings: { maxRounds } });
+    };
+
+    const handleRefreshCategories = async () => {
+        setLoading(true);
+        const API_URL = import.meta.env.DEV ? 'http://localhost:8080' : '';
+        try {
+            const res = await fetch(`${API_URL}/api/refresh`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                setCategories(data.categories);
+            }
+        } catch (err) {
+            console.error('Failed to refresh:', err);
+        }
+        setLoading(false);
     };
 
     if (!gameState) return <div className="host-container flex-center"><h3>Waiting for game state...</h3></div>;
@@ -146,7 +169,17 @@ export default function HostView() {
             <div className="main-content">
                 <div className="left-panel">
                     <div className="flex justify-between items-center mb-6">
-                        <h3>Choose a Category</h3>
+                        <div className="flex items-center gap-4">
+                            <h3>Choose a Category</h3>
+                            <button
+                                onClick={handleRefreshCategories}
+                                disabled={loading}
+                                className="flex items-center gap-2 px-3 py-1 bg-gray-800 rounded hover:bg-gray-700 transition"
+                                title="Refresh files from Google Drive"
+                            >
+                                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                            </button>
+                        </div>
                         <div className="flex items-center gap-2">
                             <Settings size={18} className="text-gray-400" />
                             <label className="text-sm text-gray-400">Total Rounds:</label>

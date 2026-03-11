@@ -156,6 +156,15 @@ io.on('connection', (socket) => {
     };
     socket.join(roomCode);
     callback({ roomCode });
+    // Push the initial game state to the host right after creation
+    io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
+  });
+
+  // Host or player can explicitly request current state (e.g. after refresh)
+  socket.on('requestGameState', ({ roomCode }) => {
+    if (rooms[roomCode]) {
+      socket.emit('gameStateUpdate', rooms[roomCode]);
+    }
   });
 
   socket.on('joinRoom', ({ roomCode, playerName }, callback) => {
