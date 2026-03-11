@@ -68,7 +68,7 @@ export default function ControllerView() {
     }
 
     const { status, currentPresenter, votes, players, presentationState } = gameState;
-    const isMePresenting = currentPresenter === socket.id;
+    const isMePresenting = currentPresenter === getUserId();
 
     if (status === 'lobby') {
         return (
@@ -138,7 +138,7 @@ export default function ControllerView() {
             );
         }
 
-        const hasVoted = votes[socket.id] !== undefined;
+        const hasVoted = votes[getUserId()] !== undefined;
 
         if (hasVoted) {
             return (
