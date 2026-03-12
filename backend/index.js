@@ -182,8 +182,9 @@ io.on('connection', (socket) => {
     if (rooms[normalizedRoomCode]) {
       // Auto-rejoin the socket room to receive future broadcasts
       socket.join(normalizedRoomCode);
-      socket.emit('gameStateUpdate', rooms[normalizedRoomCode]);
-      callback({ success: true });
+      const roomState = rooms[normalizedRoomCode];
+      socket.emit('gameStateUpdate', roomState);
+      callback({ success: true, gameState: roomState });
     } else {
       callback({ success: false, message: 'Room not found' });
     }

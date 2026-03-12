@@ -226,3 +226,18 @@ Added a QR-based fast-join flow to the host lobby and converted the README futur
 
 ### Notes
 - The QR code uses the current browser origin, so hosts should open the app on their LAN IP instead of `localhost` when players join from separate phones on the same network.
+
+---
+
+## Session: 2026-03-12 – QR Join Flow Fix
+
+### Summary
+Adjusted the QR join path so phones land on the standard join form with the room code prefilled, and fixed the host-side initial room-state sync so the QR card appears without needing a manual page refresh.
+
+### Completed
+- [x] Changed the QR target link from the controller route to the home join screen with a prefilled room code
+- [x] Prefilled the Home join form from the `roomCode` query string and the stored player name
+- [x] Returned initial room state in the `requestGameState` callback so HostView can render immediately on first load
+
+### Notes
+- This keeps the controller route focused on connected/rejoining players while preserving the existing name-entry UX for first-time QR joins.
