@@ -184,6 +184,20 @@ Polished the README for launch with badges, a stronger top-of-page value proposi
 
 ---
 
+## Session: 2026-03-12 – README Future Features
+
+### Summary
+Added a dedicated future-features section to the README so public visitors can quickly understand the planned roadmap beyond the currently shipped feature set.
+
+### Completed
+- [x] Added a roadmap-style future features section to `README.md`
+- [x] Grouped planned work into gameplay, stability, and quality themes
+
+### Notes
+- The roadmap mirrors the planned phases already tracked in `planning/task_plan.md`.
+
+---
+
 ## Session: 2026-03-12 – CI Test Script Compatibility Fix
 
 ### Summary
@@ -192,6 +206,23 @@ Fixed the backend test script so GitHub Actions on Linux can discover tests corr
 ### Completed
 - [x] Switched `backend/package.json` test script back to `node --test`
 - [x] Kept tests in `backend/test/` so Node auto-discovers them cleanly
+- [x] Removed the duplicate legacy `backend/gameLogic.test.js` file
 
 ### Notes
 - This avoids the `test/**/*.test.js` glob issue that failed in Linux CI.
+
+---
+
+## Session: 2026-03-12 – QR Join and README Roadmap
+
+### Summary
+Added a QR-based fast-join flow to the host lobby and converted the README future-features list into a clearer public roadmap with status buckets.
+
+### Completed
+- [x] Added a host-lobby QR code linking directly to the controller join URL
+- [x] Added a copyable join link and localhost/LAN warning to the host UI
+- [x] Replaced the README future-features section with a `Current / In Progress / Planned / Future` roadmap
+- [x] Updated planning files to reflect the shipped QR join feature
+
+### Notes
+- The QR code uses the current browser origin, so hosts should open the app on their LAN IP instead of `localhost` when players join from separate phones on the same network.

@@ -383,6 +383,71 @@ h3 {
   gap: 0.75rem;
 }
 
+.join-card-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.join-card-header {
+  text-align: center;
+}
+
+.join-card-header h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.join-card-header span {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.qr-code-wrapper {
+  padding: 0.9rem;
+  border-radius: 1.25rem;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.22);
+}
+
+.join-card-url {
+  width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-align: center;
+  margin-bottom: 0;
+}
+
+.join-copy-btn {
+  width: 100%;
+}
+
+.join-card-hint,
+.join-card-warning {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  text-align: center;
+  margin-bottom: 0;
+}
+
+.join-card-hint {
+  color: var(--text-secondary);
+}
+
+.join-card-warning {
+  color: #fbbf24;
+}
+
 .player-list li {
   background: rgba(255, 255, 255, 0.05);
   padding: 1rem;

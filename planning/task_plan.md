@@ -66,6 +66,7 @@ Browser (Host)          Browser (Player Phone)
 - [x] Rebrand project copy to **Present or Panic**
 - [x] Added project logo assets, favicon, and MIT license for public release
 - [x] Public-facing README is launch-ready with Quick Start, badges, and deployment guidance
+- [x] Host lobby QR code for fast phone joining
 - [x] Backend unit tests run in CI before Docker publish
 - [x] GitHub main-branch protection ruleset template and CODEOWNERS added
 - [x] Room creation + 4-digit codes
@@ -110,7 +111,7 @@ Browser (Host)          Browser (Player Phone)
 - [ ] Spectator mode (join as viewer only, no voting weight)
 - [ ] Custom scoring: allow host to set star multiplier
 - [ ] Category weights (some categories appear more often)
-- [ ] QR code on host screen for easy player joining
+- [x] QR code on host screen for easy player joining
 
 ### Phase 4 – Quality
 - [x] Unit tests for backend game logic

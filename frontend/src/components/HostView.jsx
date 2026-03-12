@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { socket, getUserId, API_BASE_URL, ensureSocketConnected, normalizeRoomCode } from '../socket';
 import Slideshow from './Slideshow';
 import BrandLogo from './BrandLogo';
+import { QRCodeSVG } from 'qrcode.react';
 import { Users, Play, Settings, Star, Trophy, RefreshCw, Crown, Medal, RotateCcw, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -165,6 +166,21 @@ export default function HostView() {
     const { players, status, currentRound, settings, currentPresenter, votes } = gameState;
     const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
     const podiumPlayers = [sortedPlayers[1], sortedPlayers[0], sortedPlayers[2]].filter(Boolean);
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
+    const joinUrl = typeof window !== 'undefined' ? `${window.location.origin}/controller/${normalizedRoomCode}` : '';
+    const usesLocalhostOrigin = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+    const handleCopyJoinUrl = async () => {
+        if (!joinUrl || typeof navigator === 'undefined' || !navigator.clipboard) {
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(joinUrl);
+        } catch (error) {
+            console.error('Failed to copy join URL:', error);
+        }
+    };
 
     if (status === 'presenting' && gameState.presentationState) {
         return (
@@ -218,7 +234,7 @@ export default function HostView() {
                         />
                     </div>
                     <div className="player-count final-room-note">
-                        <span>Players stay connected in room {normalizeRoomCode(roomCode)}</span>
+                        <span>Players stay connected in room {normalizedRoomCode}</span>
                     </div>
                 </div>
                 <div className="leaderboard-layout">
@@ -286,7 +302,7 @@ export default function HostView() {
                     />
                     <div className="room-code-group">
                         <div className="room-code-label">Room Code</div>
-                        <h2><span className="highlight-text">{roomCode}</span></h2>
+                        <h2><span className="highlight-text">{normalizedRoomCode}</span></h2>
                     </div>
                 </div>
                 <div className="flex items-center gap-6">
@@ -360,6 +376,35 @@ export default function HostView() {
 
                 <div className="right-panel lobby">
                     <h3><Users size={24} /> Lobby & Scores</h3>
+                    <div className="join-card-panel">
+                        <div className="join-card-header">
+                            <h4>Fast Join</h4>
+                            <span>Scan to join on your phone</span>
+                        </div>
+                        {joinUrl ? (
+                            <div className="qr-code-wrapper">
+                                <QRCodeSVG
+                                    value={joinUrl}
+                                    size={172}
+                                    bgColor="#ffffff"
+                                    fgColor="#231942"
+                                    includeMargin
+                                />
+                            </div>
+                        ) : null}
+                        <p className="join-card-url">{joinUrl}</p>
+                        <button type="button" className="btn-secondary join-copy-btn" onClick={handleCopyJoinUrl}>
+                            Copy Join Link
+                        </button>
+                        <p className="join-card-hint">
+                            Phones can join room <strong>{normalizedRoomCode}</strong> directly from the scan.
+                        </p>
+                        {usesLocalhostOrigin ? (
+                            <p className="join-card-warning">
+                                Open the host screen via your computer&apos;s LAN IP instead of localhost if phones are on the same network.
+                            </p>
+                        ) : null}
+                    </div>
                     <ul className="player-list">
                         <AnimatePresence>
                             {players.length === 0 && <p className="empty-state">Waiting for players to join...</p>}

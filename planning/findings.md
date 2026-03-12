@@ -97,10 +97,15 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 
 ### HostView States
 1. **Loading** – spinner while categories fetch
-2. **Lobby** – left panel: categories + settings; right panel: player list with scores
+2. **Lobby** – left panel: categories + settings; right panel: QR fast-join card plus player list with scores
 3. **Presenting** – delegates to `<Slideshow />` component
 4. **Voting** – shows vote count progress, host clicks "Reveal Score & Continue"
 5. **Leaderboard** – podium (top 3) + full ranked list; restart buttons
+
+### QR Join Behavior
+- The host lobby generates a QR code for `${window.location.origin}/controller/:roomCode`.
+- The join panel also shows a copyable controller link for manual sharing.
+- When the host uses `localhost`, the UI warns that phones on the LAN need the host opened via the computer's local network IP instead.
 
 ### ControllerView States
 1. **No gameState** – "Waiting for host..."
