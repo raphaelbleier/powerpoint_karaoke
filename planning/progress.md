@@ -181,3 +181,17 @@ Polished the README for launch with badges, a stronger top-of-page value proposi
 
 ### Notes
 - The README now reads more like a public product page while staying technically accurate.
+
+---
+
+## Session: 2026-03-12 – CI Test Script Compatibility Fix
+
+### Summary
+Fixed the backend test script so GitHub Actions on Linux can discover tests correctly without depending on shell-specific glob expansion.
+
+### Completed
+- [x] Switched `backend/package.json` test script back to `node --test`
+- [x] Kept tests in `backend/test/` so Node auto-discovers them cleanly
+
+### Notes
+- This avoids the `test/**/*.test.js` glob issue that failed in Linux CI.

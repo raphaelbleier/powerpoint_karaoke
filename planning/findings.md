@@ -74,6 +74,7 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 ### Test Coverage
 - Pure backend room-state helpers live in `backend/gameLogic.js`.
 - Unit tests use Node's built-in test runner in `backend/test/gameLogic.test.js`.
+- The backend test script relies on Node test auto-discovery for cross-platform compatibility between Windows and Linux CI.
 - CI runs backend tests and a frontend production build before Docker publishing.
 
 ### GHCR Publishing
