@@ -31,3 +31,6 @@ frontend/.env
 .env.test.local
 .env.production.local
 .env.local
+
+# Build artifacts that should not be tracked
+frontend/build_output.txt

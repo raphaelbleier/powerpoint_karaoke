@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { socket, getUserId, ensureSocketConnected, normalizeRoomCode, setStoredPlayerName } from '../socket';
 import { Monitor, Smartphone } from 'lucide-react';
 import { motion } from 'framer-motion';
+import BrandLogo from './BrandLogo';
 
 const MotionDiv = motion.div;
 
@@ -53,12 +54,17 @@ export default function Home() {
     return (
         <div className="home-container">
             <MotionDiv
+                className="home-hero"
                 initial={{ y: -50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
             >
-                <h1 className="title">Kapopo <span>Clone</span></h1>
-                <p className="subtitle">PowerPoint Karaoke powered by Google Drive</p>
+                <BrandLogo
+                    variant="full"
+                    showText={false}
+                    className="home-brand"
+                    imageClassName="home-brand-image"
+                />
             </MotionDiv>
 
             <div className="card-grid">

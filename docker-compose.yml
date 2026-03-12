@@ -1,10 +1,10 @@
 version: '3.8'
 
 services:
-  powerpoint-karaoke:
+  present-or-panic:
     # Ersetze <your-username> und <repository> mit den echten Werten deines GitHub Repos
-    image: ghcr.io/<your-username>/powerpoint_karaoke:latest
-    container_name: kapopo_clone
+    image: ghcr.io/<your-username>/present-or-panic:latest
+    container_name: present_or_panic
     ports:
       - "8080:8080"
     environment:

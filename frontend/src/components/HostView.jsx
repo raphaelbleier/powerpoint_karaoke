@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { socket, getUserId, API_BASE_URL, ensureSocketConnected, normalizeRoomCode } from '../socket';
 import Slideshow from './Slideshow';
+import BrandLogo from './BrandLogo';
 import { Users, Play, Settings, Star, Trophy, RefreshCw, Crown, Medal, RotateCcw, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -205,7 +206,17 @@ export default function HostView() {
         return (
             <div className="host-container">
                 <div className="top-bar">
-                    <h2>Game Over - Final Results!</h2>
+                    <div className="top-bar-brand">
+                        <BrandLogo
+                            variant="icon"
+                            className="host-brand"
+                            imageClassName="host-brand-icon"
+                            titleClassName="host-brand-title"
+                            subtitleClassName="host-brand-subtitle"
+                            title="Present or Panic"
+                            subtitle="Final Results"
+                        />
+                    </div>
                     <div className="player-count final-room-note">
                         <span>Players stay connected in room {normalizeRoomCode(roomCode)}</span>
                     </div>
@@ -263,7 +274,21 @@ export default function HostView() {
     return (
         <div className="host-container">
             <div className="top-bar">
-                <h2>Room Code: <span className="highlight-text">{roomCode}</span></h2>
+                <div className="top-bar-brand">
+                    <BrandLogo
+                        variant="icon"
+                        className="host-brand"
+                        imageClassName="host-brand-icon"
+                        titleClassName="host-brand-title"
+                        subtitleClassName="host-brand-subtitle"
+                        title="Present or Panic"
+                        subtitle="Host Dashboard"
+                    />
+                    <div className="room-code-group">
+                        <div className="room-code-label">Room Code</div>
+                        <h2><span className="highlight-text">{roomCode}</span></h2>
+                    </div>
+                </div>
                 <div className="flex items-center gap-6">
                     <div className="player-count">
                         <Users size={20} />

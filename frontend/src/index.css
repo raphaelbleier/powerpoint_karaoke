@@ -54,6 +54,35 @@ body {
   text-align: center;
 }
 
+.home-hero {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2.5rem;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-brand {
+  justify-content: center;
+}
+
+.home-brand-image {
+  width: min(100%, 34rem);
+  max-width: 100%;
+  height: auto;
+  filter: drop-shadow(0 18px 40px rgba(35, 25, 66, 0.35));
+}
+
 .title {
   font-size: 4rem;
   font-weight: 800;
@@ -199,6 +228,52 @@ button:active {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.top-bar-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.host-brand {
+  align-items: center;
+}
+
+.host-brand-icon {
+  width: 4rem;
+  height: 4rem;
+  flex-shrink: 0;
+  filter: drop-shadow(0 8px 16px rgba(35, 25, 66, 0.24));
+}
+
+.host-brand-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.host-brand-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.room-code-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.room-code-group h2 {
+  margin: 0;
+}
+
+.room-code-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-secondary);
+}
+
 .highlight-text {
   color: var(--accent-pink);
   font-weight: 800;
@@ -218,6 +293,29 @@ button:active {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 2rem;
+}
+
+.controller-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.controller-brand-icon {
+  width: 5rem;
+  height: 5rem;
+  filter: drop-shadow(0 10px 20px rgba(35, 25, 66, 0.28));
+}
+
+.controller-brand-inline {
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.controller-brand-inline-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  filter: drop-shadow(0 8px 16px rgba(35, 25, 66, 0.24));
 }
 
 .left-panel,

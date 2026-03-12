@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { socket, getUserId, ensureSocketConnected, getStoredPlayerName, normalizeRoomCode } from '../socket';
 import { ArrowLeft, ArrowRight, XCircle, Star, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
+import BrandLogo from './BrandLogo';
 
 const MotionDiv = motion.div;
 
@@ -82,10 +83,20 @@ export default function ControllerView() {
         socket.emit('submitVote', { roomCode: normalizeRoomCode(roomCode), userId: getUserId(), score });
     };
 
+    const controllerBrand = (
+        <BrandLogo
+            variant="icon"
+            showText={false}
+            className="controller-brand"
+            imageClassName="controller-brand-icon"
+        />
+    );
+
     if (!gameState) {
         return (
             <div className="controller-container flex-center">
                 <MotionDiv initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="waiting-box">
+                    {controllerBrand}
                     <h2>Room: {roomCode}</h2>
                     <div className="pulsing-circle"></div>
                     <p>You're in! Waiting for the host...</p>
@@ -102,6 +113,7 @@ export default function ControllerView() {
         return (
             <div className="controller-container flex-center">
                 <MotionDiv initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="waiting-box">
+                    {controllerBrand}
                     <h2>Room: {roomCode}</h2>
                     <div className="pulsing-circle"></div>
                     <p>Waiting in Lobby...</p>
@@ -117,6 +129,12 @@ export default function ControllerView() {
             return (
                 <div className="controller-container active-mode">
                     <div className="header">
+                        <BrandLogo
+                            variant="icon"
+                            showText={false}
+                            className="controller-brand-inline"
+                            imageClassName="controller-brand-inline-icon"
+                        />
                         <h3>You are Presenting!</h3>
                         <p className="topic-title">{presentationState.presentation.title}</p>
                     </div>
@@ -145,6 +163,7 @@ export default function ControllerView() {
             return (
                 <div className="controller-container flex-center">
                     <MotionDiv initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="waiting-box">
+                        {controllerBrand}
                         <h2>👀 Look at the screen!</h2>
                         <div className="pulsing-circle" style={{ background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)' }}></div>
                         <p className="text-xl font-bold text-green-400">{presenterName}</p>
@@ -161,6 +180,7 @@ export default function ControllerView() {
             return (
                 <div className="controller-container flex-center">
                     <div className="waiting-box">
+                        {controllerBrand}
                         <h2>Done! 🎉</h2>
                         <p className="mt-4">Relax while the others vote on your presentation.</p>
                     </div>
@@ -174,6 +194,7 @@ export default function ControllerView() {
             return (
                 <div className="controller-container flex-center">
                     <div className="waiting-box">
+                        {controllerBrand}
                         <h2>Vote Submitted! ✅</h2>
                         <p className="mt-4 text-gray-400">Waiting for others to finish voting...</p>
                     </div>
@@ -183,6 +204,7 @@ export default function ControllerView() {
 
         return (
             <div className="controller-container flex flex-col justify-center items-center p-4">
+                {controllerBrand}
                 <h2 className="text-2xl font-bold mb-6 text-center">Rate the Presentation!</h2>
                 <div className="flex flex-col gap-4 w-full max-w-sm">
                     {[5, 4, 3, 2, 1].map((star) => (
@@ -204,6 +226,7 @@ export default function ControllerView() {
         return (
             <div className="controller-container flex-center">
                 <MotionDiv initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="waiting-box">
+                    {controllerBrand}
                     <Award size={64} className="mx-auto text-yellow-400 mb-4" />
                     <h2 className="text-3xl font-bold mb-2">Game Over!</h2>
                     <p className="text-xl text-gray-400">Look at the big screen for final results!</p>

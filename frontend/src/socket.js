@@ -4,7 +4,10 @@ const browserHost = typeof window !== 'undefined' ? window.location.hostname : '
 
 export const API_BASE_URL = import.meta.env.DEV ? `http://${browserHost}:8080` : '';
 const SOCKET_URL = import.meta.env.DEV ? API_BASE_URL : '/';
-const PLAYER_NAME_KEY = 'kapopo_playerName';
+const PLAYER_NAME_KEY = 'presentOrPanic_playerName';
+const LEGACY_PLAYER_NAME_KEY = 'kapopo_playerName';
+const USER_ID_KEY = 'presentOrPanic_userId';
+const LEGACY_USER_ID_KEY = 'kapopo_userId';
 
 export const socket = io(SOCKET_URL, {
     autoConnect: false,
@@ -45,20 +48,33 @@ export const ensureSocketConnected = () => new Promise((resolve, reject) => {
 
 export const normalizeRoomCode = (roomCode = '') => roomCode.trim().toUpperCase();
 
-export const getStoredPlayerName = () => localStorage.getItem(PLAYER_NAME_KEY) || '';
+export const getStoredPlayerName = () => {
+    const storedName = localStorage.getItem(PLAYER_NAME_KEY) || localStorage.getItem(LEGACY_PLAYER_NAME_KEY) || '';
+
+    if (storedName && !localStorage.getItem(PLAYER_NAME_KEY)) {
+        localStorage.setItem(PLAYER_NAME_KEY, storedName);
+        localStorage.removeItem(LEGACY_PLAYER_NAME_KEY);
+    }
+
+    return storedName;
+};
 
 export const setStoredPlayerName = (playerName) => {
     const normalizedName = playerName.trim();
     if (normalizedName) {
         localStorage.setItem(PLAYER_NAME_KEY, normalizedName);
+        localStorage.removeItem(LEGACY_PLAYER_NAME_KEY);
     }
 };
 
 export const getUserId = () => {
-    let id = localStorage.getItem('kapopo_userId');
+    let id = localStorage.getItem(USER_ID_KEY) || localStorage.getItem(LEGACY_USER_ID_KEY);
     if (!id) {
         id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-        localStorage.setItem('kapopo_userId', id);
     }
+
+    localStorage.setItem(USER_ID_KEY, id);
+    localStorage.removeItem(LEGACY_USER_ID_KEY);
+
     return id;
 };

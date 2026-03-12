@@ -30,7 +30,7 @@ export default function Slideshow({ presentation, currentSlide, onEnd, onNext, o
     // Or simply, we just pass the slide index to the user. For Google slides,
     // we might have to rely on the presenter to manually tap if they use the native controls wrapper.
     // A simple hack: Google Slides iframe does not natively respond to external postMessage for slide changes.
-    // Kapopo usually uses Google slides simply by asking players to click the slide or use a proxy.
+    // Present or Panic usually handles Google Slides by letting players click the slide or use a proxy.
     // Since we rely on a controller, we can simulate focus or just tell players they must click on the host PC?
     // Actually, if we use the embed link `?start=false&loop=false&delayms=3000#slide=id.pX`, we can just change the key/src 
     // to force standard navigation, or we just rely on `presentationState` to show the current slide.
