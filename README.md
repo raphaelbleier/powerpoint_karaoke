@@ -122,6 +122,32 @@ For a private Google Drive folder:
 - Backend unit tests running in CI before image publishing
 - Public GHCR package for quick deployment
 
+## Roadmap
+
+### Current
+- Full playable game loop: lobby → presentation → voting → leaderboard
+- Phone controller flow with reconnect-friendly browser identity
+- Google Drive categories with PDF and Google Slides support
+- Host fast-join QR code for phone access from the lobby screen
+- Public GHCR image, Docker deployment, CI validation, and branch-protection templates
+
+### In Progress
+- Better empty states when Google Drive is not configured
+- Improved room and session resilience around reconnect edge cases
+
+### Planned
+- Presentation timer with automatic countdown
+- Player disconnect cleanup with a grace period
+- Stronger player-name sanitization and validation
+- Socket-flow integration tests
+- Better frontend error handling via an error boundary
+
+### Future
+- Spectator mode for view-only participants
+- Custom scoring options for hosts
+- Category weighting for more tailored randomness
+- Browser E2E coverage with Playwright
+
 ## How the Game Works
 
 1. The host creates a room on the main screen.
