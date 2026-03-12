@@ -2,11 +2,74 @@
   <img src="frontend/public/brand/present-or-panic-logo.svg" alt="Present or Panic logo" width="420" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/raphaelbleier/powerpoint_karaoke/actions/workflows/docker-publish.yml"><img src="https://github.com/raphaelbleier/powerpoint_karaoke/actions/workflows/docker-publish.yml/badge.svg" alt="CI and Docker publish status" /></a>
+  <a href="https://github.com/raphaelbleier/powerpoint_karaoke/pkgs/container/powerpoint_karaoke"><img src="https://img.shields.io/badge/GHCR-public-blue" alt="GHCR public package" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License" /></a>
+</p>
+
 # Present or Panic
 
 Present or Panic is a multiplayer PowerPoint Karaoke web app for local parties, workshops, and chaotic presentation nights.
 
 One screen runs the host view, players join on their phones, and the app pulls random presentations from Google Drive. A random player has to present a random deck, everyone else votes, and the game keeps score across multiple rounds.
+
+## Why Present or Panic?
+
+- Great for parties, team events, workshops, classrooms, and improv nights
+- Runs with one host screen and multiple phone controllers
+- Uses your own Google Drive decks, PDFs, and Google Slides
+- Ships with a public Docker image for fast self-hosting
+- Includes CI validation and protected-main workflow setup for safer releases
+
+## Quick Start
+
+### Run the public image with Docker Compose
+
+1. Copy [docker-compose.yml](docker-compose.yml)
+2. Set your Google Drive environment values
+3. Start the app:
+
+```bash
+docker-compose up -d
+```
+
+The compose file already pulls the public image from:
+
+```text
+ghcr.io/raphaelbleier/powerpoint_karaoke:latest
+```
+
+### Run the public image directly
+
+```bash
+docker pull ghcr.io/raphaelbleier/powerpoint_karaoke:latest
+
+docker run -d \
+  --name present_or_panic \
+  -p 8080:8080 \
+  -e PORT=8080 \
+  -e POWERPOINTS_FOLDER_ID=your-folder-id \
+  -e GOOGLE_API_KEY=your-api-key \
+  ghcr.io/raphaelbleier/powerpoint_karaoke:latest
+```
+
+Then open the app on:
+
+- `http://localhost:8080`
+
+### Minimum required environment
+
+For a public Google Drive folder:
+
+- `POWERPOINTS_FOLDER_ID`
+- `GOOGLE_API_KEY`
+
+For a private Google Drive folder:
+
+- `POWERPOINTS_FOLDER_ID`
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+- `GOOGLE_PRIVATE_KEY`
 
 ## Features
 
@@ -47,7 +110,17 @@ One screen runs the host view, players join on their phones, and the app pulls r
 - Docker multi-stage build
 - `docker-compose.yml` for self-hosting
 - GitHub Actions workflow for publishing to GHCR
+- Public container image published to `ghcr.io/raphaelbleier/powerpoint_karaoke:latest`
 - Works well for LAN / same-network play
+
+## Highlights
+
+- Full playable game loop: lobby → presentation → voting → leaderboard
+- Host authority built into the socket flow
+- Reconnect-friendly player identity via browser persistence
+- Google Drive-backed category and presentation loading
+- Backend unit tests running in CI before image publishing
+- Public GHCR package for quick deployment
 
 ## How the Game Works
 
@@ -187,13 +260,35 @@ npm run dev
 
 ## Docker / Self-Hosting
 
+The repository and GHCR package are public, so you can pull the latest image directly from GitHub:
+
+```bash
+docker pull ghcr.io/raphaelbleier/powerpoint_karaoke:latest
+```
+
 ### Docker Compose
 
-Update the image and environment values in `docker-compose.yml`, then run:
+The included `docker-compose.yml` already points at the published image. Set your environment values, then run:
 
 ```bash
 docker-compose up -d
 ```
+
+### Docker Run
+
+You can also run the published image directly:
+
+```bash
+docker run -d \
+  --name present_or_panic \
+  -p 8080:8080 \
+  -e PORT=8080 \
+  -e POWERPOINTS_FOLDER_ID=your-folder-id \
+  -e GOOGLE_API_KEY=your-api-key \
+  ghcr.io/raphaelbleier/powerpoint_karaoke:latest
+```
+
+For a private Google Drive folder, replace `GOOGLE_API_KEY` with `GOOGLE_SERVICE_ACCOUNT_EMAIL` and `GOOGLE_PRIVATE_KEY`.
 
 ### GitHub Container Registry
 
@@ -202,7 +297,7 @@ The repository includes `.github/workflows/docker-publish.yml`.
 On every push to `main`, GitHub Actions builds the Docker image and publishes it to:
 
 ```text
-ghcr.io/<owner>/<repo>:latest
+ghcr.io/raphaelbleier/powerpoint_karaoke:latest
 ```
 
 ## Current Limitations
@@ -213,7 +308,7 @@ These are known limitations in the current version:
 - Disconnect cleanup is intentionally permissive for refresh tolerance, so stale players may remain in a room
 - No presentation timer yet
 - No spectator mode yet
-- No automated unit or integration test suite yet
+- Backend unit tests exist, but socket-flow integration and browser E2E tests are still missing
 
 ## Status
 
@@ -226,6 +321,28 @@ This project is already playable and covers the full core loop:
 - leaderboard
 - replay / new game
 
+Current release state:
+
+- public repository
+- public GHCR image
+- automated backend test gate in CI
+- ready for self-hosted launches
+
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE).
+
+## GitHub Protection
+
+This repository includes:
+
+- a code owner file at `.github/CODEOWNERS`
+- a main-branch ruleset template at `.github/rulesets/main-branch-protection.json`
+
+The intended protection policy for `main` is:
+
+- pull requests only
+- passing `test` status check required
+- repository owner approval required via code owner review
+- no force pushes
+- no branch deletion

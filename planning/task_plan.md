@@ -65,7 +65,9 @@ Browser (Host)          Browser (Player Phone)
 ### Implemented & Working
 - [x] Rebrand project copy to **Present or Panic**
 - [x] Added project logo assets, favicon, and MIT license for public release
-- [x] Public-facing README documents features, setup, deployment, and limitations
+- [x] Public-facing README is launch-ready with Quick Start, badges, and deployment guidance
+- [x] Backend unit tests run in CI before Docker publish
+- [x] GitHub main-branch protection ruleset template and CODEOWNERS added
 - [x] Room creation + 4-digit codes
 - [x] Player join / reconnect / host-rejoin detection
 - [x] Google Drive integration (folders = categories, PDFs + Google Slides)
@@ -88,7 +90,7 @@ Browser (Host)          Browser (Player Phone)
 - [ ] Socket disconnect does not clean up player from room (intentional for refresh tolerance, but long-term players never removed)
 - [ ] No time limit per presentation
 - [ ] No spectator mode
-- [ ] No unit/integration tests
+- [ ] No browser E2E/integration tests yet
 
 ---
 
@@ -111,7 +113,8 @@ Browser (Host)          Browser (Player Phone)
 - [ ] QR code on host screen for easy player joining
 
 ### Phase 4 – Quality
-- [ ] Unit tests for backend socket logic
+- [x] Unit tests for backend game logic
+- [ ] Integration tests for backend socket flows
 - [ ] E2E test with Playwright
 - [ ] Error boundary in React frontend
 - [ ] Better empty-state handling (no Drive credentials configured)

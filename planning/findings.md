@@ -71,6 +71,20 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 - The app favicon is served from `frontend/public/favicon.png`.
 - The README and the web UI both reference the same Present or Panic logo assets.
 
+### Test Coverage
+- Pure backend room-state helpers live in `backend/gameLogic.js`.
+- Unit tests use Node's built-in test runner in `backend/test/gameLogic.test.js`.
+- CI runs backend tests and a frontend production build before Docker publishing.
+
+### GHCR Publishing
+- The GitHub Actions workflow publishes to `ghcr.io/raphaelbleier/powerpoint_karaoke:latest` because `IMAGE_NAME` is derived from `github.repository`.
+- The GHCR package is public, so direct anonymous pulls are supported.
+
+### GitHub Repository Protection
+- `.github/CODEOWNERS` assigns the repo owner as code owner for all files.
+- `.github/rulesets/main-branch-protection.json` documents the desired `main` protection policy.
+- The actual ruleset still needs to be applied in GitHub Settings → Rules → Rulesets.
+
 ### Connection Pattern
 - Socket is NOT auto-connected on import
 - `ensureSocketConnected()` is called on-demand, returns a Promise

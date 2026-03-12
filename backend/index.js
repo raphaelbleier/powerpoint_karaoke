@@ -5,6 +5,13 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const { google } = require('googleapis');
+const {
+  DEFAULT_SETTINGS,
+  normalizeRoomCode,
+  canControlPresentation,
+  resetRoomForNextGame,
+  finalizeVoting
+} = require('./gameLogic');
 
 const app = express();
 const server = http.createServer(app);
@@ -40,7 +47,6 @@ const setupDriveApi = () => {
 
 const drive = setupDriveApi();
 const ROOT_FOLDER_ID = process.env.POWERPOINTS_FOLDER_ID || '';
-const DEFAULT_SETTINGS = { maxRounds: 2 };
 
 // Cache for Categories and Presentations
 let categoriesCache = [];
@@ -142,8 +148,6 @@ app.get('/api/presentations/pdf/:id', async (req, res) => {
 // Socket.io for Multiplayer
 const rooms = {}; // { roomCode: { ...gameState } }
 
-const normalizeRoomCode = (roomCode = '') => roomCode.trim().toUpperCase();
-
 const generateRoomCode = () => {
   let roomCode;
   do {
@@ -151,32 +155,6 @@ const generateRoomCode = () => {
   } while (rooms[roomCode]);
 
   return roomCode;
-};
-
-const canControlPresentation = (room, userId) => {
-  if (!room || !room.presentationState) {
-    return false;
-  }
-
-  return room.hostUserId === userId || room.currentPresenter === userId;
-};
-
-const resetRoomForNextGame = (room, { resetSettings = false } = {}) => {
-  room.status = 'lobby';
-  room.currentRound = 1;
-  room.currentPresenter = null;
-  room.votes = {};
-  room.presentationState = null;
-
-  if (resetSettings) {
-    room.settings = { ...DEFAULT_SETTINGS };
-  }
-
-  room.players = room.players.map(player => ({
-    ...player,
-    score: 0,
-    hasPresentedThisRound: false
-  }));
 };
 
 io.on('connection', (socket) => {
@@ -250,77 +228,54 @@ io.on('connection', (socket) => {
   });
 
   socket.on('updateSettings', ({ roomCode, userId, settings }) => {
-    if (rooms[roomCode] && rooms[roomCode].hostUserId === userId) {
-      rooms[roomCode].settings = { ...rooms[roomCode].settings, ...settings };
-      io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
+
+    if (rooms[normalizedRoomCode] && rooms[normalizedRoomCode].hostUserId === userId) {
+      rooms[normalizedRoomCode].settings = { ...rooms[normalizedRoomCode].settings, ...settings };
+      io.to(normalizedRoomCode).emit('gameStateUpdate', rooms[normalizedRoomCode]);
     }
   });
 
   socket.on('startPresentation', ({ roomCode, userId, presentation, presenterId }) => {
-    if (rooms[roomCode] && rooms[roomCode].hostUserId === userId) {
-      rooms[roomCode].status = 'presenting';
-      rooms[roomCode].currentPresenter = presenterId;
-      rooms[roomCode].presentationState = { currentSlide: 0, presentation };
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
 
-      const player = rooms[roomCode].players.find(p => p.id === presenterId);
+    if (rooms[normalizedRoomCode] && rooms[normalizedRoomCode].hostUserId === userId) {
+      rooms[normalizedRoomCode].status = 'presenting';
+      rooms[normalizedRoomCode].currentPresenter = presenterId;
+      rooms[normalizedRoomCode].presentationState = { currentSlide: 0, presentation };
+
+      const player = rooms[normalizedRoomCode].players.find(p => p.id === presenterId);
       if (player) player.hasPresentedThisRound = true;
 
-      io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
+      io.to(normalizedRoomCode).emit('gameStateUpdate', rooms[normalizedRoomCode]);
     }
   });
 
   socket.on('startVoting', ({ roomCode, userId }) => {
-    if (rooms[roomCode] && rooms[roomCode].hostUserId === userId) {
-      rooms[roomCode].status = 'voting';
-      rooms[roomCode].votes = {};
-      io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
+
+    if (rooms[normalizedRoomCode] && rooms[normalizedRoomCode].hostUserId === userId) {
+      rooms[normalizedRoomCode].status = 'voting';
+      rooms[normalizedRoomCode].votes = {};
+      io.to(normalizedRoomCode).emit('gameStateUpdate', rooms[normalizedRoomCode]);
     }
   });
 
   socket.on('submitVote', ({ roomCode, userId, score }) => {
-    if (rooms[roomCode] && rooms[roomCode].status === 'voting') {
-      rooms[roomCode].votes[userId] = score;
-      io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
+
+    if (rooms[normalizedRoomCode] && rooms[normalizedRoomCode].status === 'voting') {
+      rooms[normalizedRoomCode].votes[userId] = score;
+      io.to(normalizedRoomCode).emit('gameStateUpdate', rooms[normalizedRoomCode]);
     }
   });
 
   socket.on('finishVoting', ({ roomCode, userId }) => {
-    if (rooms[roomCode] && rooms[roomCode].hostUserId === userId) {
-      const room = rooms[roomCode];
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
 
-      // Calculate average score
-      const voteValues = Object.values(room.votes);
-      let avgScore = 0;
-      if (voteValues.length > 0) {
-        avgScore = voteValues.reduce((a, b) => a + b, 0) / voteValues.length;
-      }
-
-      // Add score to presenter
-      const presenter = room.players.find(p => p.id === room.currentPresenter);
-      if (presenter) {
-        presenter.score += Math.round(avgScore * 10); // Scale up to look better (e.g. 1-5 stars = 10-50 points)
-      }
-
-      // Check if round is over (everyone presented)
-      const allPresented = room.players.every(p => p.hasPresentedThisRound);
-
-      if (allPresented) {
-        if (room.currentRound >= room.settings.maxRounds) {
-          room.status = 'leaderboard';
-        } else {
-          room.currentRound++;
-          room.players.forEach(p => p.hasPresentedThisRound = false);
-          room.status = 'lobby';
-        }
-      } else {
-        room.status = 'lobby';
-      }
-
-      room.currentPresenter = null;
-      room.presentationState = null;
-      room.votes = {};
-
-      io.to(roomCode).emit('gameStateUpdate', room);
+    if (rooms[normalizedRoomCode] && rooms[normalizedRoomCode].hostUserId === userId) {
+      const room = finalizeVoting(rooms[normalizedRoomCode]);
+      io.to(normalizedRoomCode).emit('gameStateUpdate', room);
     }
   });
 
@@ -355,14 +310,16 @@ io.on('connection', (socket) => {
   });
 
   socket.on('leaveRoom', ({ roomCode, userId, isHost }) => {
-    if (rooms[roomCode]) {
-      if (isHost && rooms[roomCode].hostUserId === userId) {
-        io.to(roomCode).emit('hostDisconnected');
-        delete rooms[roomCode];
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
+
+    if (rooms[normalizedRoomCode]) {
+      if (isHost && rooms[normalizedRoomCode].hostUserId === userId) {
+        io.to(normalizedRoomCode).emit('hostDisconnected');
+        delete rooms[normalizedRoomCode];
       } else {
-        rooms[roomCode].players = rooms[roomCode].players.filter(p => p.id !== userId);
-        if (rooms[roomCode].votes[userId]) delete rooms[roomCode].votes[userId];
-        io.to(roomCode).emit('gameStateUpdate', rooms[roomCode]);
+        rooms[normalizedRoomCode].players = rooms[normalizedRoomCode].players.filter(p => p.id !== userId);
+        if (rooms[normalizedRoomCode].votes[userId]) delete rooms[normalizedRoomCode].votes[userId];
+        io.to(normalizedRoomCode).emit('gameStateUpdate', rooms[normalizedRoomCode]);
       }
     }
   });

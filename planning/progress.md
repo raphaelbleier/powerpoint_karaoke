@@ -98,3 +98,86 @@ Added brand assets to the repo, wired the logo and favicon into the web UI and R
 
 ### Notes
 - The favicon is a PNG asset generated for the project and served from the frontend public directory.
+
+---
+
+## Session: 2026-03-12 – CI Test Gate
+
+### Summary
+Added backend unit tests for core game-state transitions and updated the GitHub Actions pipeline to run tests and a frontend build before publishing the Docker image.
+
+### Completed
+- [x] Extracted reusable room-state helpers into `backend/gameLogic.js`
+- [x] Added backend unit tests in `backend/gameLogic.test.js`
+- [x] Switched `backend/package.json` to use Node's built-in test runner
+- [x] Added a `test` job to `.github/workflows/docker-publish.yml`
+- [x] Made Docker publishing depend on a passing test/build job
+- [x] Normalized room code usage in several backend socket handlers while refactoring
+
+### Notes
+- CI now runs on pull requests to `main` as well as pushes to `main`.
+
+---
+
+## Session: 2026-03-12 – Main Branch Ruleset & Test Folder Cleanup
+
+### Summary
+Moved backend tests into a dedicated `backend/test/` folder and added repository protection metadata for `main`, including a CODEOWNERS file and a GitHub ruleset template.
+
+### Completed
+- [x] Moved backend unit tests to `backend/test/gameLogic.test.js`
+- [x] Updated the backend test script to run the `test` directory
+- [x] Added `.github/CODEOWNERS` pointing to the repository owner
+- [x] Added `.github/rulesets/main-branch-protection.json` with the desired branch protection policy
+- [x] Added ruleset setup notes in `.github/rulesets/README.md`
+
+### Notes
+- GitHub rulesets cannot be fully enforced from repository files alone; the included template must still be applied in the repo settings.
+
+---
+
+## Session: 2026-03-12 – Public GHCR README Update
+
+### Summary
+Updated the README and compose example so the repository can be published publicly with a concrete GHCR pull path and direct self-hosting instructions.
+
+### Completed
+- [x] Added the real GHCR image path to the README
+- [x] Added `docker pull` and `docker run` examples for the published image
+- [x] Documented the GitHub Packages visibility step required for public anonymous pulls
+- [x] Updated `docker-compose.yml` to use `ghcr.io/raphaelbleier/powerpoint_karaoke:latest`
+
+### Notes
+- Direct unauthenticated pulls work only after the GHCR package visibility is changed to public.
+
+---
+
+## Session: 2026-03-12 – Quick Start for Public Repo
+
+### Summary
+Added a top-level Quick Start section to the README and updated the GHCR instructions now that the repository and package are public.
+
+### Completed
+- [x] Added a concise Quick Start section near the top of the README
+- [x] Added direct public `docker pull` / `docker run` usage guidance
+- [x] Simplified the GHCR section to reflect public anonymous pulls
+
+### Notes
+- The README now better supports first-time visitors landing on the public repository.
+
+---
+
+## Session: 2026-03-12 – Launch-Ready README Polish
+
+### Summary
+Polished the README for launch with badges, a stronger top-of-page value proposition, clearer highlights, and more accurate release-status messaging.
+
+### Completed
+- [x] Added CI, GHCR, and license badges near the top of the README
+- [x] Added a short "Why Present or Panic?" section
+- [x] Added a launch-oriented highlights section
+- [x] Corrected the limitations section to reflect existing backend unit tests
+- [x] Clarified the current release state for public visitors
+
+### Notes
+- The README now reads more like a public product page while staying technically accurate.

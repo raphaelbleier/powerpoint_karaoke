@@ -2,8 +2,7 @@ version: '3.8'
 
 services:
   present-or-panic:
-    # Ersetze <your-username> und <repository> mit den echten Werten deines GitHub Repos
-    image: ghcr.io/<your-username>/present-or-panic:latest
+    image: ghcr.io/raphaelbleier/powerpoint_karaoke:latest
     container_name: present_or_panic
     ports:
       - "8080:8080"
