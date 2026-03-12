@@ -103,8 +103,8 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 5. **Leaderboard** – podium (top 3) + full ranked list; restart buttons
 
 ### QR Join Behavior
-- The host lobby generates a QR code for `${window.location.origin}/controller/:roomCode`.
-- The join panel also shows a copyable controller link for manual sharing.
+- The host lobby generates a QR code for `${window.location.origin}/?roomCode=:roomCode` so phones land on the join form with the room code prefilled.
+- The join panel also shows a copyable join link for manual sharing.
 - When the host uses `localhost`, the UI warns that phones on the LAN need the host opened via the computer's local network IP instead.
 
 ### ControllerView States

@@ -53,6 +53,10 @@ export default function HostView() {
                         return;
                     }
 
+                    if (res?.success && res.gameState) {
+                        setGameState(res.gameState);
+                    }
+
                     if (!res?.success) {
                         alert('Room not found.');
                         navigate('/');
@@ -167,7 +171,9 @@ export default function HostView() {
     const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
     const podiumPlayers = [sortedPlayers[1], sortedPlayers[0], sortedPlayers[2]].filter(Boolean);
     const normalizedRoomCode = normalizeRoomCode(roomCode);
-    const joinUrl = typeof window !== 'undefined' ? `${window.location.origin}/controller/${normalizedRoomCode}` : '';
+    const joinUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/?roomCode=${encodeURIComponent(normalizedRoomCode)}`
+        : '';
     const usesLocalhostOrigin = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
     const handleCopyJoinUrl = async () => {
