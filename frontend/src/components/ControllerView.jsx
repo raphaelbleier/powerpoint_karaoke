@@ -11,6 +11,28 @@ export default function ControllerView() {
     const { roomCode } = useParams();
     const navigate = useNavigate();
     const [gameState, setGameState] = useState(null);
+    const [timerNow, setTimerNow] = useState(0);
+
+    useEffect(() => {
+        if (!gameState?.presentationEndsAt || gameState.status !== 'presenting') {
+            return undefined;
+        }
+
+        const intervalId = window.setInterval(() => {
+            setTimerNow(Date.now());
+        }, 1000);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [gameState?.presentationEndsAt, gameState?.status]);
+
+    const formatRemaining = (seconds) => {
+        const safeSeconds = Math.max(0, Math.ceil(seconds));
+        const mins = Math.floor(safeSeconds / 60);
+        const secs = safeSeconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
     useEffect(() => {
         let isActive = true;
@@ -118,7 +140,8 @@ export default function ControllerView() {
         );
     }
 
-    const { status, currentPresenter, votes, players, presentationState } = gameState;
+    const { status, currentPresenter, votes, players, presentationState, presentationEndsAt } = gameState;
+    const secondsRemaining = presentationEndsAt ? (presentationEndsAt - timerNow) / 1000 : null;
     const isMePresenting = currentPresenter === getUserId();
 
     if (status === 'lobby') {
@@ -149,6 +172,7 @@ export default function ControllerView() {
                         />
                         <h3>You are Presenting!</h3>
                         <p className="topic-title">{presentationState.presentation.title}</p>
+                        {secondsRemaining !== null ? <p className="timer-inline">Time left: {formatRemaining(secondsRemaining)}</p> : null}
                     </div>
 
                     <div className="controls">
@@ -180,6 +204,7 @@ export default function ControllerView() {
                         <div className="pulsing-circle" style={{ background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)' }}></div>
                         <p className="text-xl font-bold text-green-400">{presenterName}</p>
                         <p>is currently presenting.</p>
+                        {secondsRemaining !== null ? <p className="timer-inline mt-4">Time left: {formatRemaining(secondsRemaining)}</p> : null}
 
                     </MotionDiv>
                 </div>

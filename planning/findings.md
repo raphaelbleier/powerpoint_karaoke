@@ -14,11 +14,12 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
   hostUserId: string,
   players: [{ id, name, score, hasPresentedThisRound }],
   status: 'lobby' | 'presenting' | 'voting' | 'leaderboard',
-  settings: { maxRounds: number },   // default: 2
+  settings: { maxRounds: number, presentationSeconds: number },   // default: 2, 120
   currentRound: number,
   currentPresenter: string | null,   // player userId
   votes: { [voterId]: score },       // 1–5
-  presentationState: { currentSlide: number, presentation: {...} } | null
+  presentationState: { currentSlide: number, presentation: {...} } | null,
+  presentationEndsAt: number | null  // unix ms timestamp while presenting
 }
 ```
 
@@ -43,7 +44,7 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 | `joinRoom` | C→S | player | Join room; host rejoining just gets `isHost: true` |
 | `updateSettings` | C→S | host | Change maxRounds |
 | `startPresentation` | C→S | host | Begins presenting phase |
-| `startVoting` | C→S | host | Transitions to voting |
+| `startVoting` | C→S | host | Transitions to voting (also auto-triggered by timer) |
 | `submitVote` | C→S | player | Cast a star rating |
 | `finishVoting` | C→S | host | Tallies votes, advances state |
 | `restartGame` | C→S | host | Resets room (`'recreate'` keeps settings, `'new'` resets) |
@@ -76,6 +77,7 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 - Unit tests use Node's built-in test runner in `backend/test/gameLogic.test.js`.
 - The backend test script relies on Node test auto-discovery for cross-platform compatibility between Windows and Linux CI.
 - CI smoke tests run backend tests, frontend lint, and frontend production build before Docker publishing.
+- Socket-flow integration tests cover core event sequences in `backend/test/socketFlow.integration.test.js`.
 
 ### GHCR Publishing
 - The GitHub Actions workflow publishes to `ghcr.io/raphaelbleier/powerpoint_karaoke:latest` because `IMAGE_NAME` is derived from `github.repository`.
@@ -99,6 +101,30 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 ### Mobile Voting UI Behavior
 - Controller voting uses dedicated classes (`vote-screen`, `vote-options`, `vote-option-btn`, `vote-stars`) to keep vote options vertically stacked on phones.
 - Voting buttons now render full-width and consistent across narrow mobile viewports.
+
+### Device Compatibility / Responsive UX
+- Host dashboard layout now scales better on larger desktop-tablet screens using wider container limits and larger card/category spacing at high breakpoints.
+- Controller uses `100dvh`/`100svh` with safe-area padding (`env(safe-area-inset-*)`) to better support phones with notches and dynamic browser UI.
+- Home join inputs now include mobile keyboard hints (`inputMode`, `enterKeyHint`, autocomplete) for faster join flow on different smartphone keyboards.
+- Frontend viewport meta now includes `viewport-fit=cover` for modern mobile devices.
+
+### Presentation Timer Implementation
+- The backend now stores `presentationEndsAt` and schedules an automatic `presenting -> voting` transition using a room-specific timeout.
+- Host can configure timer duration via `settings.presentationSeconds` (validated/clamped server-side).
+- Host slideshow and controller UI derive remaining time from `presentationEndsAt` and local 1s ticks.
+
+### Disconnect Grace Cleanup
+- Socket connection bookkeeping tracks active socket IDs per `{roomCode,userId}`.
+- On disconnect, cleanup is delayed by `DISCONNECT_GRACE_MS` (default 30000ms) and cancelled if the same user reconnects in time.
+- Host disconnect after grace emits `hostDisconnected` and removes the room; player disconnect removes that player and their vote.
+
+### Validation Hardening
+- Player names are sanitized on both client and server (control chars + dangerous chars stripped, whitespace collapsed).
+- Server enforces 2–24 chars and a strict allowed-character pattern before accepting join.
+- Vote submission now rejects out-of-range values and presenter self-votes.
+
+### Frontend Error Boundary
+- `frontend/src/components/ErrorBoundary.jsx` wraps the app root and provides a reload fallback for unexpected render/runtime UI errors.
 
 ### Home Join Link Prefill
 - Home query param prefill was simplified to use `useState` initialization from `searchParams`.

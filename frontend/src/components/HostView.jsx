@@ -17,6 +17,28 @@ export default function HostView() {
     const [categories, setCategories] = useState([]);
     const [includedCategoryIds, setIncludedCategoryIds] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [timerNow, setTimerNow] = useState(0);
+
+    useEffect(() => {
+        if (!gameState?.presentationEndsAt || gameState.status !== 'presenting') {
+            return undefined;
+        }
+
+        const intervalId = window.setInterval(() => {
+            setTimerNow(Date.now());
+        }, 1000);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [gameState?.presentationEndsAt, gameState?.status]);
+
+    const formatRemaining = (seconds) => {
+        const safeSeconds = Math.max(0, Math.ceil(seconds));
+        const mins = Math.floor(safeSeconds / 60);
+        const secs = safeSeconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
     useEffect(() => {
         let isActive = true;
@@ -122,6 +144,11 @@ export default function HostView() {
         socket.emit('updateSettings', { roomCode: normalizeRoomCode(roomCode), userId: getUserId(), settings: { maxRounds } });
     };
 
+    const handleUpdatePresentationSeconds = (e) => {
+        const presentationSeconds = parseInt(e.target.value) || 15;
+        socket.emit('updateSettings', { roomCode: normalizeRoomCode(roomCode), userId: getUserId(), settings: { presentationSeconds } });
+    };
+
     const handleRefreshCategories = async () => {
         setLoading(true);
         try {
@@ -158,7 +185,7 @@ export default function HostView() {
             socket.emit('updateSettings', {
                 roomCode: normalizeRoomCode(roomCode),
                 userId: getUserId(),
-                settings: { maxRounds: 2 }
+                settings: { maxRounds: 2, presentationSeconds: 120 }
             });
         }
 
@@ -167,7 +194,8 @@ export default function HostView() {
 
     if (!gameState) return <div className="host-container flex-center"><h3>Waiting for game state...</h3></div>;
 
-    const { players, status, currentRound, settings, currentPresenter, votes } = gameState;
+    const { players, status, currentRound, settings, currentPresenter, votes, presentationEndsAt } = gameState;
+    const secondsRemaining = presentationEndsAt ? (presentationEndsAt - timerNow) / 1000 : null;
     const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
     const podiumPlayers = [sortedPlayers[1], sortedPlayers[0], sortedPlayers[2]].filter(Boolean);
     const normalizedRoomCode = normalizeRoomCode(roomCode);
@@ -196,6 +224,7 @@ export default function HostView() {
                 onEnd={handleEndPresentation}
                 onNext={handleNextSlide}
                 onPrev={handlePrevSlide}
+                timerLabel={secondsRemaining !== null ? formatRemaining(secondsRemaining) : null}
             />
         );
     }
@@ -344,6 +373,18 @@ export default function HostView() {
                                 min="1" max="10"
                                 value={settings.maxRounds}
                                 onChange={handleUpdateSettings}
+                                className="input-field mb-0 py-1 px-2 w-20 text-center"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm text-gray-400">Timer (sec):</label>
+                            <input
+                                type="number"
+                                min="15"
+                                max="600"
+                                step="15"
+                                value={settings.presentationSeconds}
+                                onChange={handleUpdatePresentationSeconds}
                                 className="input-field mb-0 py-1 px-2 w-20 text-center"
                             />
                         </div>

@@ -87,6 +87,7 @@ For a private Google Drive folder:
 - Socket.IO-based live state sync
 - Host rejoin detection after refresh
 - Player reconnect support with persisted browser identity
+- Grace-period disconnect cleanup for stale player sessions
 - Room code normalization on client and server
 - Host-only game phase control
 - Presenter and host slide control support
@@ -105,6 +106,9 @@ For a private Google Drive folder:
 - Voting flow with 1–5 star scoring
 - Score calculation based on average vote × 10
 - Responsive phone-first controller experience
+- Presentation timer with automatic countdown (host + controller)
+- Frontend error boundary fallback screen for unexpected UI crashes
+- Stronger player-name sanitization and validation in join flow
 
 ### Deployment
 - Docker multi-stage build
@@ -119,7 +123,7 @@ For a private Google Drive folder:
 - Host authority built into the socket flow
 - Reconnect-friendly player identity via browser persistence
 - Google Drive-backed category and presentation loading
-- Backend unit tests running in CI before image publishing
+- Backend unit + socket-flow integration tests running in CI before image publishing
 - Public GHCR package for quick deployment
 
 ## Roadmap
@@ -136,17 +140,17 @@ For a private Google Drive folder:
 - Improved room and session resilience around reconnect edge cases
 
 ### Planned
-- Presentation timer with automatic countdown
-- Player disconnect cleanup with a grace period
-- Stronger player-name sanitization and validation
-- Socket-flow integration tests
-- Better frontend error handling via an error boundary
+- Host-side presentation timer presets (quick toggle buttons)
+- Host moderation actions (kick/mute voting)
+- In-room reconnect indicator for temporarily disconnected users
 
 ### Future
 - Spectator mode for view-only participants
 - Custom scoring options for hosts
 - Category weighting for more tailored randomness
 - Browser E2E coverage with Playwright
+- Persistent room storage option (Redis/Postgres)
+- Per-round presenter history + analytics export
 
 ## How the Game Works
 
@@ -331,10 +335,9 @@ ghcr.io/raphaelbleier/powerpoint_karaoke:latest
 These are known limitations in the current version:
 
 - Room state is stored in memory only; a server restart removes active rooms
-- Disconnect cleanup is intentionally permissive for refresh tolerance, so stale players may remain in a room
-- No presentation timer yet
+- Disconnect cleanup uses an in-memory grace period and is reset on server restart
 - No spectator mode yet
-- Backend unit tests exist, but socket-flow integration and browser E2E tests are still missing
+- Browser E2E tests are still missing
 
 ## Status
 
@@ -351,7 +354,7 @@ Current release state:
 
 - public repository
 - public GHCR image
-- automated backend test gate in CI
+- automated smoke-test gate in CI (backend tests + frontend lint + frontend build)
 - ready for self-hosted launches
 
 ## License
@@ -368,7 +371,7 @@ This repository includes:
 The intended protection policy for `main` is:
 
 - pull requests only
-- passing `test` status check required
+- passing `smoke-tests` status check required
 - repository owner approval required via code owner review
 - no force pushes
 - no branch deletion
