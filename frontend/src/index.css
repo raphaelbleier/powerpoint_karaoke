@@ -701,6 +701,30 @@ h3 {
   background: rgba(236, 72, 153, 0.1);
 }
 
+.vote-screen {
+  justify-content: center;
+  align-items: center;
+}
+
+.vote-options {
+  width: 100%;
+  max-width: 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.vote-option-btn {
+  width: 100%;
+}
+
+.vote-stars {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 
 /* ================== SLIDESHOW VIEW ================== */
 .slideshow-container {
@@ -946,6 +970,10 @@ h3 {
 @media (max-width: 640px) {
   .host-container {
     padding: 1rem;
+  }
+
+  .vote-options {
+    max-width: 100%;
   }
 
   .podium-grid,

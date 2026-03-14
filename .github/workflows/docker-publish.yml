@@ -11,7 +11,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  test:
+  smoke-tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -39,12 +39,16 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+
       - name: Build frontend
         working-directory: frontend
         run: npm run build
 
   build-and-push-image:
-    needs: test
+    needs: smoke-tests
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:

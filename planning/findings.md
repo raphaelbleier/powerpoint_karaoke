@@ -1,6 +1,6 @@
 ---
 project: Present or Panic
-last_updated: 2026-03-12
+last_updated: 2026-03-14
 ---
 
 # Findings
@@ -75,7 +75,7 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 - Pure backend room-state helpers live in `backend/gameLogic.js`.
 - Unit tests use Node's built-in test runner in `backend/test/gameLogic.test.js`.
 - The backend test script relies on Node test auto-discovery for cross-platform compatibility between Windows and Linux CI.
-- CI runs backend tests and a frontend production build before Docker publishing.
+- CI smoke tests run backend tests, frontend lint, and frontend production build before Docker publishing.
 
 ### GHCR Publishing
 - The GitHub Actions workflow publishes to `ghcr.io/raphaelbleier/powerpoint_karaoke:latest` because `IMAGE_NAME` is derived from `github.repository`.
@@ -90,6 +90,19 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 - Socket is NOT auto-connected on import
 - `ensureSocketConnected()` is called on-demand, returns a Promise
 - This avoids unnecessary connections when landing on Home page
+
+### Controller Reconnect Synchronization
+- `ControllerView.jsx` now emits `requestGameState` immediately after successful `joinRoom`.
+- Controller also listens for socket `connect` and re-runs room join/sync logic.
+- This fixes the issue where players only saw voting/review after a manual browser refresh.
+
+### Mobile Voting UI Behavior
+- Controller voting uses dedicated classes (`vote-screen`, `vote-options`, `vote-option-btn`, `vote-stars`) to keep vote options vertically stacked on phones.
+- Voting buttons now render full-width and consistent across narrow mobile viewports.
+
+### Home Join Link Prefill
+- Home query param prefill was simplified to use `useState` initialization from `searchParams`.
+- The previous effect-driven `setJoinCode` pattern triggered the `react-hooks/set-state-in-effect` lint rule and was removed.
 
 ---
 

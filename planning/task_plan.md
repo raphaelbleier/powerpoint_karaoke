@@ -1,6 +1,6 @@
 ---
 project: Present or Panic
-last_updated: 2026-03-12
+last_updated: 2026-03-14
 ---
 
 # Task Plan
@@ -60,7 +60,7 @@ Browser (Host)          Browser (Player Phone)
 
 ---
 
-## Current Status (as of 2026-03-12)
+## Current Status (as of 2026-03-14)
 
 ### Implemented & Working
 - [x] Rebrand project copy to **Present or Panic**
@@ -77,12 +77,15 @@ Browser (Host)          Browser (Player Phone)
 - [x] Random presenter + random presentation selection
 - [x] Slide navigation (host + presenter can control)
 - [x] Voting phase (star rating)
+- [x] Mobile voting layout keeps star options vertically stacked on phone controllers
+- [x] Controller voting/phase state appears without manual browser refresh (auto state re-sync on join/reconnect)
 - [x] Score tallying (avg stars × 10 pts)
 - [x] Multi-round support (`maxRounds` setting)
 - [x] Leaderboard + podium UI
 - [x] Game restart (replay same setup / new game)
 - [x] Docker multi-stage build
 - [x] GHCR publish via GitHub Actions
+- [x] CI smoke gate includes backend tests + frontend lint + frontend build before image publish
 - [x] Framer Motion animations throughout
 
 ### Pending / Known Issues
@@ -115,6 +118,7 @@ Browser (Host)          Browser (Player Phone)
 
 ### Phase 4 – Quality
 - [x] Unit tests for backend game logic
+- [x] Frontend lint step enforced in CI smoke tests
 - [ ] Integration tests for backend socket flows
 - [ ] E2E test with Playwright
 - [ ] Error boundary in React frontend
@@ -125,4 +129,4 @@ Browser (Host)          Browser (Player Phone)
 ## Errors Log
 | Error | Phase | Resolution |
 |-------|-------|------------|
-| (none logged yet) | – | – |
+| `react-hooks/set-state-in-effect` lint error in `Home.jsx` query-param prefill logic | Phase 4 – Quality | Removed effect-driven `setJoinCode`; rely on `useState` initializer from query params |

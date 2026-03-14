@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { socket, getUserId, ensureSocketConnected, normalizeRoomCode, setStoredPlayerName, getStoredPlayerName } from '../socket';
 import { Monitor, Smartphone } from 'lucide-react';
@@ -12,14 +12,6 @@ export default function Home() {
     const [searchParams] = useSearchParams();
     const [joinCode, setJoinCode] = useState(() => normalizeRoomCode(searchParams.get('roomCode') || ''));
     const [playerName, setPlayerName] = useState(() => getStoredPlayerName());
-
-    useEffect(() => {
-        const requestedRoomCode = normalizeRoomCode(searchParams.get('roomCode') || '');
-
-        if (requestedRoomCode) {
-            setJoinCode(requestedRoomCode);
-        }
-    }, [searchParams]);
 
     const handleCreateRoom = async () => {
         try {

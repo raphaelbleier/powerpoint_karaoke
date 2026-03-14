@@ -1,6 +1,6 @@
 ---
 project: Present or Panic
-last_updated: 2026-03-12
+last_updated: 2026-03-14
 ---
 
 # Progress Log
@@ -241,3 +241,28 @@ Adjusted the QR join path so phones land on the standard join form with the room
 
 ### Notes
 - This keeps the controller route focused on connected/rejoining players while preserving the existing name-entry UX for first-time QR joins.
+
+---
+
+## Session: 2026-03-14 – Mobile Voting + Reconnect + CI Smoke Test Expansion
+
+### Summary
+Fixed mobile review/voting layout on phone controllers, resolved controller state-sync behavior that required manual refresh during review/voting, ran local smoke checks, fixed a frontend lint issue in Home query-prefill logic, and expanded GitHub Actions smoke checks.
+
+### Completed
+- [x] Updated `frontend/src/components/ControllerView.jsx` voting UI structure to use explicit mobile voting layout wrappers
+- [x] Updated `frontend/src/index.css` with dedicated voting layout classes (`vote-screen`, `vote-options`, `vote-option-btn`, `vote-stars`)
+- [x] Added controller-side `requestGameState` emit immediately after `joinRoom` success
+- [x] Added controller reconnect handling on socket `connect` to rejoin/re-sync automatically
+- [x] Ran backend tests (`npm --prefix backend test`) successfully
+- [x] Ran frontend build (`npm --prefix frontend run build`) successfully
+- [x] Detected lint failure in `Home.jsx` (`react-hooks/set-state-in-effect`) and fixed it
+- [x] Removed effect-based roomCode prefill in `Home.jsx`; retained query-prefill via initial state
+- [x] Verified frontend lint passes (`npm --prefix frontend run lint`)
+- [x] Updated `.github/workflows/docker-publish.yml` to run frontend lint in CI smoke tests
+- [x] Renamed workflow validation job from `test` to `smoke-tests` and kept Docker publish gated on it
+
+### Notes
+- The mobile voting buttons now remain vertically stacked on phone-sized viewports.
+- Controller clients now receive current room state on join/reconnect without requiring manual page refresh.
+- CI now validates backend tests + frontend lint + frontend build before image publish on `main` pushes.
