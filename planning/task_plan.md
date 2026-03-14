@@ -86,6 +86,7 @@ Browser (Host)          Browser (Player Phone)
 - [x] Docker multi-stage build
 - [x] GHCR publish via GitHub Actions
 - [x] CI smoke gate includes backend tests + frontend lint + frontend build before image publish
+- [x] CI legacy status-check compatibility (`testExpected`) added to avoid indefinite PR waiting while rulesets migrate
 - [x] Framer Motion animations throughout
 - [x] Responsive UX tuning for large host screens/tablets and varied smartphone controllers (safe areas + adaptive sizing)
 - [x] Presentation timer with automatic countdown and host-configurable duration

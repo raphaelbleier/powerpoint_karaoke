@@ -82,6 +82,8 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 ### GHCR Publishing
 - The GitHub Actions workflow publishes to `ghcr.io/raphaelbleier/powerpoint_karaoke:latest` because `IMAGE_NAME` is derived from `github.repository`.
 - The GHCR package is public, so direct anonymous pulls are supported.
+- If a repository ruleset still requires an old check context (for example `testExpected`), PRs can stay in "Waiting for status to be reported" indefinitely even when workflow runs are green.
+- A temporary compatibility job named `testExpected` now reports status after `smoke-tests` to prevent blocked merges during ruleset migration.
 
 ### GitHub Repository Protection
 - `.github/CODEOWNERS` assigns the repo owner as code owner for all files.

@@ -316,3 +316,19 @@ Implemented all items that were listed in the README `Planned` section: presenta
 ### Notes
 - Timer settings are clamped on the server (15–600 seconds) to prevent extreme values.
 - Disconnect cleanup is still in-memory and will reset on backend restart.
+
+---
+
+## Session: 2026-03-14 – CI Required-Check Compatibility Fix
+
+### Summary
+Fixed PR pipelines that were waiting indefinitely for a required status context that no longer existed after renaming the main test job.
+
+### Completed
+- [x] Added a compatibility status job `testExpected` in `.github/workflows/docker-publish.yml`
+- [x] Kept compatibility job dependent on `smoke-tests` so it only passes when smoke checks pass
+- [x] Updated `.github/rulesets/main-branch-protection.json` to use `smoke-tests` as the intended required check context
+- [x] Updated `.github/rulesets/README.md` with migration guidance and temporary compatibility notes
+
+### Notes
+- Repository rules configured in GitHub UI are authoritative; the compatibility job prevents merge blocking while those rules are updated.
