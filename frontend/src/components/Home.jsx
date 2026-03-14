@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { socket, getUserId, ensureSocketConnected, normalizeRoomCode, setStoredPlayerName, getStoredPlayerName } from '../socket';
+import { socket, getUserId, ensureSocketConnected, normalizeRoomCode, setStoredPlayerName, getStoredPlayerName, sanitizePlayerName } from '../socket';
 import { Monitor, Smartphone } from 'lucide-react';
 import { motion } from 'framer-motion';
 import BrandLogo from './BrandLogo';
@@ -13,13 +13,7 @@ export default function Home() {
     const [joinCode, setJoinCode] = useState(() => normalizeRoomCode(searchParams.get('roomCode') || ''));
     const [playerName, setPlayerName] = useState(() => getStoredPlayerName());
 
-    useEffect(() => {
-        const requestedRoomCode = normalizeRoomCode(searchParams.get('roomCode') || '');
-
-        if (requestedRoomCode) {
-            setJoinCode(requestedRoomCode);
-        }
-    }, [searchParams]);
+    const isValidPlayerName = (name) => /^[\p{L}\p{N} .,'_-]{2,24}$/u.test(name);
 
     const handleCreateRoom = async () => {
         try {
@@ -36,9 +30,14 @@ export default function Home() {
     const handleJoinRoom = async (e) => {
         e.preventDefault();
         const normalizedRoomCode = normalizeRoomCode(joinCode);
-        const normalizedPlayerName = playerName.trim();
+        const normalizedPlayerName = sanitizePlayerName(playerName);
 
         if (!normalizedRoomCode || !normalizedPlayerName) return;
+
+        if (!isValidPlayerName(normalizedPlayerName)) {
+            alert('Name must be 2-24 characters and can only contain letters, numbers, spaces, and . , " \' _ -');
+            return;
+        }
 
         try {
             await ensureSocketConnected();
@@ -104,13 +103,20 @@ export default function Home() {
                             onChange={(e) => setJoinCode(normalizeRoomCode(e.target.value))}
                             className="input-field"
                             maxLength={4}
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            enterKeyHint="next"
                         />
                         <input
                             type="text"
                             placeholder="Your Name"
                             value={playerName}
-                            onChange={(e) => setPlayerName(e.target.value)}
+                            onChange={(e) => setPlayerName(sanitizePlayerName(e.target.value))}
                             className="input-field"
+                            autoComplete="nickname"
+                            autoCapitalize="words"
+                            maxLength={24}
+                            enterKeyHint="go"
                         />
                         <button type="submit" className="btn-secondary">
                             Join Room

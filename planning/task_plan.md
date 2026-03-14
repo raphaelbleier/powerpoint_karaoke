@@ -1,6 +1,6 @@
 ---
 project: Present or Panic
-last_updated: 2026-03-12
+last_updated: 2026-03-14
 ---
 
 # Task Plan
@@ -60,7 +60,7 @@ Browser (Host)          Browser (Player Phone)
 
 ---
 
-## Current Status (as of 2026-03-12)
+## Current Status (as of 2026-03-14)
 
 ### Implemented & Working
 - [x] Rebrand project copy to **Present or Panic**
@@ -77,13 +77,23 @@ Browser (Host)          Browser (Player Phone)
 - [x] Random presenter + random presentation selection
 - [x] Slide navigation (host + presenter can control)
 - [x] Voting phase (star rating)
+- [x] Mobile voting layout keeps star options vertically stacked on phone controllers
+- [x] Controller voting/phase state appears without manual browser refresh (auto state re-sync on join/reconnect)
 - [x] Score tallying (avg stars × 10 pts)
 - [x] Multi-round support (`maxRounds` setting)
 - [x] Leaderboard + podium UI
 - [x] Game restart (replay same setup / new game)
 - [x] Docker multi-stage build
 - [x] GHCR publish via GitHub Actions
+- [x] CI smoke gate includes backend tests + frontend lint + frontend build before image publish
+- [x] CI legacy status-check compatibility (`testExpected`) added to avoid indefinite PR waiting while rulesets migrate
 - [x] Framer Motion animations throughout
+- [x] Responsive UX tuning for large host screens/tablets and varied smartphone controllers (safe areas + adaptive sizing)
+- [x] Presentation timer with automatic countdown and host-configurable duration
+- [x] Player disconnect cleanup with reconnect grace period
+- [x] Stronger player-name sanitization and validation (client + server)
+- [x] Socket-flow integration tests in backend test suite
+- [x] Frontend error boundary fallback UI
 
 ### Pending / Known Issues
 - [ ] **Staged but uncommitted changes** – all modified files need review + commit
@@ -103,9 +113,9 @@ Browser (Host)          Browser (Player Phone)
 - [ ] Verify `backend/.env.example` is complete and accurate
 
 ### Phase 2 – Stability
-- [ ] Add timer per presentation (configurable, e.g. 2 min)
-- [ ] Player disconnect cleanup with a grace-period timeout
-- [ ] Input sanitization on player names (prevent XSS)
+- [x] Add timer per presentation (configurable, e.g. 2 min)
+- [x] Player disconnect cleanup with a grace-period timeout
+- [x] Input sanitization on player names (prevent XSS)
 
 ### Phase 3 – Features
 - [ ] Spectator mode (join as viewer only, no voting weight)
@@ -115,9 +125,10 @@ Browser (Host)          Browser (Player Phone)
 
 ### Phase 4 – Quality
 - [x] Unit tests for backend game logic
-- [ ] Integration tests for backend socket flows
+- [x] Frontend lint step enforced in CI smoke tests
+- [x] Integration tests for backend socket flows
 - [ ] E2E test with Playwright
-- [ ] Error boundary in React frontend
+- [x] Error boundary in React frontend
 - [ ] Better empty-state handling (no Drive credentials configured)
 
 ---
@@ -125,4 +136,4 @@ Browser (Host)          Browser (Player Phone)
 ## Errors Log
 | Error | Phase | Resolution |
 |-------|-------|------------|
-| (none logged yet) | – | – |
+| `react-hooks/set-state-in-effect` lint error in `Home.jsx` query-param prefill logic | Phase 4 – Quality | Removed effect-driven `setJoinCode`; rely on `useState` initializer from query params |

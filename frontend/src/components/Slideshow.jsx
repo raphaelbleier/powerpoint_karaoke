@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 
 const MotionDiv = motion.div;
 
-export default function Slideshow({ presentation, currentSlide, onEnd, onNext, onPrev }) {
+export default function Slideshow({ presentation, currentSlide, onEnd, onNext, onPrev, timerLabel }) {
     const isGoogleSlide = presentation.type === 'slide';
     const googleSlidesUrl = `${presentation.url}#slide=id.p${currentSlide + 1}`;
     const pdfUrl = `${presentation.url}#page=${currentSlide + 1}&view=Fit`;
@@ -47,6 +47,7 @@ export default function Slideshow({ presentation, currentSlide, onEnd, onNext, o
         >
             <div className="slideshow-header">
                 <h2 className="title">{presentation.title}</h2>
+                {timerLabel ? <div className="timer-pill">⏱ {timerLabel}</div> : null}
                 <button onClick={onEnd} className="end-btn group">
                     <XCircle size={28} className="group-hover:text-red-400 transition-colors" />
                     <span>End Presentation</span>
@@ -77,6 +78,7 @@ export default function Slideshow({ presentation, currentSlide, onEnd, onNext, o
             {/* For controllers, we just overlay a small non-intrusive HUD */}
             <div className="slideshow-hud">
                 <p>Slide {currentSlide + 1}</p>
+                {timerLabel ? <p>Time left: {timerLabel}</p> : null}
                 <p className="hud-hint">Controllers can swipe or press Next/Prev on their phones.</p>
                 <p className="hud-hint">Note: for Google Slides, you might need to click the screen once to focus before keyboard/controller works natively, or use the built-in slide buttons.</p>
             </div>

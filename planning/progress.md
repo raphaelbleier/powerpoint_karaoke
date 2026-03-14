@@ -1,6 +1,6 @@
 ---
 project: Present or Panic
-last_updated: 2026-03-12
+last_updated: 2026-03-14
 ---
 
 # Progress Log
@@ -241,3 +241,94 @@ Adjusted the QR join path so phones land on the standard join form with the room
 
 ### Notes
 - This keeps the controller route focused on connected/rejoining players while preserving the existing name-entry UX for first-time QR joins.
+
+---
+
+## Session: 2026-03-14 – Mobile Voting + Reconnect + CI Smoke Test Expansion
+
+### Summary
+Fixed mobile review/voting layout on phone controllers, resolved controller state-sync behavior that required manual refresh during review/voting, ran local smoke checks, fixed a frontend lint issue in Home query-prefill logic, and expanded GitHub Actions smoke checks.
+
+### Completed
+- [x] Updated `frontend/src/components/ControllerView.jsx` voting UI structure to use explicit mobile voting layout wrappers
+- [x] Updated `frontend/src/index.css` with dedicated voting layout classes (`vote-screen`, `vote-options`, `vote-option-btn`, `vote-stars`)
+- [x] Added controller-side `requestGameState` emit immediately after `joinRoom` success
+- [x] Added controller reconnect handling on socket `connect` to rejoin/re-sync automatically
+- [x] Ran backend tests (`npm --prefix backend test`) successfully
+- [x] Ran frontend build (`npm --prefix frontend run build`) successfully
+- [x] Detected lint failure in `Home.jsx` (`react-hooks/set-state-in-effect`) and fixed it
+- [x] Removed effect-based roomCode prefill in `Home.jsx`; retained query-prefill via initial state
+- [x] Verified frontend lint passes (`npm --prefix frontend run lint`)
+- [x] Updated `.github/workflows/docker-publish.yml` to run frontend lint in CI smoke tests
+- [x] Renamed workflow validation job from `test` to `smoke-tests` and kept Docker publish gated on it
+
+### Notes
+- The mobile voting buttons now remain vertically stacked on phone-sized viewports.
+- Controller clients now receive current room state on join/reconnect without requiring manual page refresh.
+- CI now validates backend tests + frontend lint + frontend build before image publish on `main` pushes.
+
+---
+
+## Session: 2026-03-14 – Host Tablet + Smartphone UX Improvements
+
+### Summary
+Improved responsive behavior so the host experience scales better on larger desktop/tablet screens and joining/voting works more consistently across different smartphone form factors and keyboards.
+
+### Completed
+- [x] Updated host container and main dashboard grid sizing for wider screens
+- [x] Added large-screen (`min-width: 1366px`) spacing and category-card scaling for host UI
+- [x] Updated controller viewport sizing to use `100dvh`/`100svh`
+- [x] Added safe-area inset padding for phones with notches/home-indicator areas
+- [x] Tuned controller control-button minimum sizes and typography with responsive clamps
+- [x] Kept voting options bounded with adaptive widths for diverse mobile widths
+- [x] Added mobile input hints in Home join form (`inputMode`, `enterKeyHint`, autocomplete, max name length)
+- [x] Updated frontend viewport meta to include `viewport-fit=cover`
+- [x] Re-ran frontend lint and production build successfully
+
+### Notes
+- These updates are CSS/UX focused; socket/game state flow was unchanged.
+- Join flow is now more ergonomic on mobile keyboards while preserving existing room-code normalization.
+
+---
+
+## Session: 2026-03-14 – Implemented Planned Roadmap Features
+
+### Summary
+Implemented all items that were listed in the README `Planned` section: presentation timer, disconnect grace cleanup, stronger name validation, socket-flow integration tests, and frontend error boundary handling. Updated README roadmap to introduce a new future-facing planned set.
+
+### Completed
+- [x] Added backend presentation timer support with automatic transition from `presenting` to `voting`
+- [x] Added host-configurable `presentationSeconds` setting and surfaced countdown in host + controller UI
+- [x] Added disconnect grace cleanup with reconnect cancellation logic (`DISCONNECT_GRACE_MS`)
+- [x] Added stronger player-name sanitization/validation on client and server
+- [x] Added vote validation guards (score range and presenter self-vote rejection)
+- [x] Extracted socket event handling into `backend/socketHandlers.js` for maintainability and testability
+- [x] Added backend socket-flow integration tests in `backend/test/socketFlow.integration.test.js`
+- [x] Added frontend `ErrorBoundary` wrapper and fallback UI
+- [x] Updated README feature list, limitations, roadmap, and status check naming (`smoke-tests`)
+- [x] Updated planning files (`task_plan.md`, `findings.md`, `progress.md`) to reflect shipped functionality
+
+### Validation
+- [x] `npm --prefix backend test`
+- [x] `npm --prefix frontend run lint`
+- [x] `npm --prefix frontend run build`
+
+### Notes
+- Timer settings are clamped on the server (15–600 seconds) to prevent extreme values.
+- Disconnect cleanup is still in-memory and will reset on backend restart.
+
+---
+
+## Session: 2026-03-14 – CI Required-Check Compatibility Fix
+
+### Summary
+Fixed PR pipelines that were waiting indefinitely for a required status context that no longer existed after renaming the main test job.
+
+### Completed
+- [x] Added a compatibility status job `testExpected` in `.github/workflows/docker-publish.yml`
+- [x] Kept compatibility job dependent on `smoke-tests` so it only passes when smoke checks pass
+- [x] Updated `.github/rulesets/main-branch-protection.json` to use `smoke-tests` as the intended required check context
+- [x] Updated `.github/rulesets/README.md` with migration guidance and temporary compatibility notes
+
+### Notes
+- Repository rules configured in GitHub UI are authoritative; the compatibility job prevents merge blocking while those rules are updated.

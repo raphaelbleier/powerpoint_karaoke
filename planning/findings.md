@@ -1,6 +1,6 @@
 ---
 project: Present or Panic
-last_updated: 2026-03-12
+last_updated: 2026-03-14
 ---
 
 # Findings
@@ -14,11 +14,12 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
   hostUserId: string,
   players: [{ id, name, score, hasPresentedThisRound }],
   status: 'lobby' | 'presenting' | 'voting' | 'leaderboard',
-  settings: { maxRounds: number },   // default: 2
+  settings: { maxRounds: number, presentationSeconds: number },   // default: 2, 120
   currentRound: number,
   currentPresenter: string | null,   // player userId
   votes: { [voterId]: score },       // 1–5
-  presentationState: { currentSlide: number, presentation: {...} } | null
+  presentationState: { currentSlide: number, presentation: {...} } | null,
+  presentationEndsAt: number | null  // unix ms timestamp while presenting
 }
 ```
 
@@ -43,7 +44,7 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 | `joinRoom` | C→S | player | Join room; host rejoining just gets `isHost: true` |
 | `updateSettings` | C→S | host | Change maxRounds |
 | `startPresentation` | C→S | host | Begins presenting phase |
-| `startVoting` | C→S | host | Transitions to voting |
+| `startVoting` | C→S | host | Transitions to voting (also auto-triggered by timer) |
 | `submitVote` | C→S | player | Cast a star rating |
 | `finishVoting` | C→S | host | Tallies votes, advances state |
 | `restartGame` | C→S | host | Resets room (`'recreate'` keeps settings, `'new'` resets) |
@@ -75,11 +76,14 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 - Pure backend room-state helpers live in `backend/gameLogic.js`.
 - Unit tests use Node's built-in test runner in `backend/test/gameLogic.test.js`.
 - The backend test script relies on Node test auto-discovery for cross-platform compatibility between Windows and Linux CI.
-- CI runs backend tests and a frontend production build before Docker publishing.
+- CI smoke tests run backend tests, frontend lint, and frontend production build before Docker publishing.
+- Socket-flow integration tests cover core event sequences in `backend/test/socketFlow.integration.test.js`.
 
 ### GHCR Publishing
 - The GitHub Actions workflow publishes to `ghcr.io/raphaelbleier/powerpoint_karaoke:latest` because `IMAGE_NAME` is derived from `github.repository`.
 - The GHCR package is public, so direct anonymous pulls are supported.
+- If a repository ruleset still requires an old check context (for example `testExpected`), PRs can stay in "Waiting for status to be reported" indefinitely even when workflow runs are green.
+- A temporary compatibility job named `testExpected` now reports status after `smoke-tests` to prevent blocked merges during ruleset migration.
 
 ### GitHub Repository Protection
 - `.github/CODEOWNERS` assigns the repo owner as code owner for all files.
@@ -90,6 +94,43 @@ Rooms are stored in a plain in-memory JS object (`const rooms = {}`). Each room:
 - Socket is NOT auto-connected on import
 - `ensureSocketConnected()` is called on-demand, returns a Promise
 - This avoids unnecessary connections when landing on Home page
+
+### Controller Reconnect Synchronization
+- `ControllerView.jsx` now emits `requestGameState` immediately after successful `joinRoom`.
+- Controller also listens for socket `connect` and re-runs room join/sync logic.
+- This fixes the issue where players only saw voting/review after a manual browser refresh.
+
+### Mobile Voting UI Behavior
+- Controller voting uses dedicated classes (`vote-screen`, `vote-options`, `vote-option-btn`, `vote-stars`) to keep vote options vertically stacked on phones.
+- Voting buttons now render full-width and consistent across narrow mobile viewports.
+
+### Device Compatibility / Responsive UX
+- Host dashboard layout now scales better on larger desktop-tablet screens using wider container limits and larger card/category spacing at high breakpoints.
+- Controller uses `100dvh`/`100svh` with safe-area padding (`env(safe-area-inset-*)`) to better support phones with notches and dynamic browser UI.
+- Home join inputs now include mobile keyboard hints (`inputMode`, `enterKeyHint`, autocomplete) for faster join flow on different smartphone keyboards.
+- Frontend viewport meta now includes `viewport-fit=cover` for modern mobile devices.
+
+### Presentation Timer Implementation
+- The backend now stores `presentationEndsAt` and schedules an automatic `presenting -> voting` transition using a room-specific timeout.
+- Host can configure timer duration via `settings.presentationSeconds` (validated/clamped server-side).
+- Host slideshow and controller UI derive remaining time from `presentationEndsAt` and local 1s ticks.
+
+### Disconnect Grace Cleanup
+- Socket connection bookkeeping tracks active socket IDs per `{roomCode,userId}`.
+- On disconnect, cleanup is delayed by `DISCONNECT_GRACE_MS` (default 30000ms) and cancelled if the same user reconnects in time.
+- Host disconnect after grace emits `hostDisconnected` and removes the room; player disconnect removes that player and their vote.
+
+### Validation Hardening
+- Player names are sanitized on both client and server (control chars + dangerous chars stripped, whitespace collapsed).
+- Server enforces 2–24 chars and a strict allowed-character pattern before accepting join.
+- Vote submission now rejects out-of-range values and presenter self-votes.
+
+### Frontend Error Boundary
+- `frontend/src/components/ErrorBoundary.jsx` wraps the app root and provides a reload fallback for unexpected render/runtime UI errors.
+
+### Home Join Link Prefill
+- Home query param prefill was simplified to use `useState` initialization from `searchParams`.
+- The previous effect-driven `setJoinCode` pattern triggered the `react-hooks/set-state-in-effect` lint rule and was removed.
 
 ---
 

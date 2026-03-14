@@ -9,6 +9,19 @@ const LEGACY_PLAYER_NAME_KEY = 'kapopo_playerName';
 const USER_ID_KEY = 'presentOrPanic_userId';
 const LEGACY_USER_ID_KEY = 'kapopo_userId';
 
+export const sanitizePlayerName = (value = '') => {
+    const raw = typeof value === 'string' ? value : '';
+    const strippedUnsafeChars = raw.replace(/[<>`]/g, '');
+    const strippedControlChars = [...strippedUnsafeChars]
+        .filter((char) => {
+            const code = char.charCodeAt(0);
+            return code >= 32 && code !== 127;
+        })
+        .join('');
+
+    return strippedControlChars.replace(/\s+/g, ' ').trim();
+};
+
 export const socket = io(SOCKET_URL, {
     autoConnect: false,
     reconnection: true
@@ -60,7 +73,7 @@ export const getStoredPlayerName = () => {
 };
 
 export const setStoredPlayerName = (playerName) => {
-    const normalizedName = playerName.trim();
+    const normalizedName = sanitizePlayerName(playerName);
     if (normalizedName) {
         localStorage.setItem(PLAYER_NAME_KEY, normalizedName);
         localStorage.removeItem(LEGACY_PLAYER_NAME_KEY);

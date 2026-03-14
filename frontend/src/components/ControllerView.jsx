@@ -11,6 +11,28 @@ export default function ControllerView() {
     const { roomCode } = useParams();
     const navigate = useNavigate();
     const [gameState, setGameState] = useState(null);
+    const [timerNow, setTimerNow] = useState(0);
+
+    useEffect(() => {
+        if (!gameState?.presentationEndsAt || gameState.status !== 'presenting') {
+            return undefined;
+        }
+
+        const intervalId = window.setInterval(() => {
+            setTimerNow(Date.now());
+        }, 1000);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [gameState?.presentationEndsAt, gameState?.status]);
+
+    const formatRemaining = (seconds) => {
+        const safeSeconds = Math.max(0, Math.ceil(seconds));
+        const mins = Math.floor(safeSeconds / 60);
+        const secs = safeSeconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
     useEffect(() => {
         let isActive = true;
@@ -48,7 +70,13 @@ export default function ControllerView() {
 
                     if (!res.success || res.isHost) {
                         navigate('/');
+                        return;
                     }
+
+                    socket.emit('requestGameState', {
+                        roomCode: normalizeRoomCode(roomCode),
+                        userId: getUserId()
+                    });
                 });
             } catch (error) {
                 console.error('Failed to reconnect controller:', error);
@@ -59,8 +87,13 @@ export default function ControllerView() {
             }
         };
 
+        const handleReconnect = () => {
+            joinRoom();
+        };
+
         socket.on('gameStateUpdate', handleGameState);
         socket.on('hostDisconnected', handleHostDisconnect);
+        socket.on('connect', handleReconnect);
 
         joinRoom();
 
@@ -68,6 +101,7 @@ export default function ControllerView() {
             isActive = false;
             socket.off('gameStateUpdate', handleGameState);
             socket.off('hostDisconnected', handleHostDisconnect);
+            socket.off('connect', handleReconnect);
         };
     }, [navigate, roomCode]);
 
@@ -106,7 +140,8 @@ export default function ControllerView() {
         );
     }
 
-    const { status, currentPresenter, votes, players, presentationState } = gameState;
+    const { status, currentPresenter, votes, players, presentationState, presentationEndsAt } = gameState;
+    const secondsRemaining = presentationEndsAt ? (presentationEndsAt - timerNow) / 1000 : null;
     const isMePresenting = currentPresenter === getUserId();
 
     if (status === 'lobby') {
@@ -137,6 +172,7 @@ export default function ControllerView() {
                         />
                         <h3>You are Presenting!</h3>
                         <p className="topic-title">{presentationState.presentation.title}</p>
+                        {secondsRemaining !== null ? <p className="timer-inline">Time left: {formatRemaining(secondsRemaining)}</p> : null}
                     </div>
 
                     <div className="controls">
@@ -168,6 +204,7 @@ export default function ControllerView() {
                         <div className="pulsing-circle" style={{ background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)' }}></div>
                         <p className="text-xl font-bold text-green-400">{presenterName}</p>
                         <p>is currently presenting.</p>
+                        {secondsRemaining !== null ? <p className="timer-inline mt-4">Time left: {formatRemaining(secondsRemaining)}</p> : null}
 
                     </MotionDiv>
                 </div>
@@ -203,18 +240,20 @@ export default function ControllerView() {
         }
 
         return (
-            <div className="controller-container flex flex-col justify-center items-center p-4">
+            <div className="controller-container vote-screen p-4">
                 {controllerBrand}
                 <h2 className="text-2xl font-bold mb-6 text-center">Rate the Presentation!</h2>
-                <div className="flex flex-col gap-4 w-full max-w-sm">
+                <div className="vote-options">
                     {[5, 4, 3, 2, 1].map((star) => (
                         <button
                             key={star}
                             onClick={() => handleVote(star)}
-                            className="btn-primary w-full py-4 text-xl flex justify-center items-center gap-2"
+                            className="btn-primary vote-option-btn py-4 text-xl"
                             style={{ background: star > 3 ? '#3b82f6' : star === 3 ? '#8b5cf6' : '#ec4899' }}
                         >
-                            {[...Array(star)].map((_, i) => <Star key={i} size={24} fill="currentColor" />)}
+                            <div className="vote-stars">
+                                {[...Array(star)].map((_, i) => <Star key={i} size={24} fill="currentColor" />)}
+                            </div>
                         </button>
                     ))}
                 </div>

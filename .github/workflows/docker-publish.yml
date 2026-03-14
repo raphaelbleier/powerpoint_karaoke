@@ -11,7 +11,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  test:
+  smoke-tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -39,12 +39,25 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+
       - name: Build frontend
         working-directory: frontend
         run: npm run build
 
+  testExpected:
+    name: Legacy status check compatibility
+    needs: smoke-tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Report compatibility status
+        run: echo "Legacy status check fulfilled via smoke-tests"
+
   build-and-push-image:
-    needs: test
+    needs: smoke-tests
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:

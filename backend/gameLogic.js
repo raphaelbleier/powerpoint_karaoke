@@ -1,4 +1,7 @@
-const DEFAULT_SETTINGS = { maxRounds: 2 };
+const DEFAULT_SETTINGS = {
+  maxRounds: 2,
+  presentationSeconds: 120
+};
 
 const normalizeRoomCode = (roomCode = '') => roomCode.trim().toUpperCase();
 
@@ -16,6 +19,7 @@ const resetRoomForNextGame = (room, { resetSettings = false } = {}) => {
   room.currentPresenter = null;
   room.votes = {};
   room.presentationState = null;
+  room.presentationEndsAt = null;
 
   if (resetSettings) {
     room.settings = { ...DEFAULT_SETTINGS };
